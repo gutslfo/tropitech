@@ -16,7 +16,8 @@ const date = {
 	href: "/details",
 	cta: "En savoir plus",
 	background: <img className="absolute -right-20 -top-20 opacity-60" />,
-	className: "lg:col-start-1 lg:col-end-2 lg:row-start-1 lg:row-end-3",
+	// En lg, la carte Date occupe la première colonne de la première rangée
+	className: "lg:col-start-1 lg:col-end-2 lg:row-start-1 lg:row-end-2",
 }
 
 const lieu = {
@@ -26,7 +27,8 @@ const lieu = {
 	href: "/details",
 	cta: "En savoir plus",
 	background: <img className="absolute -right-20 -top-20 opacity-60" />,
-	className: "lg:col-start-1 lg:col-end-2 lg:row-start-3 lg:row-end-4",
+	// En lg, la carte Lieu occupe la deuxième colonne de la première rangée
+	className: "lg:col-start-2 lg:col-end-3 lg:row-start-1 lg:row-end-2",
 }
 
 const lineUp = {
@@ -43,11 +45,12 @@ const lineUp = {
 			<span className="block h-2" />
 			00:00 - Mickey Mouse (Trap)
 		</>
-	  ),
+	),
 	href: "/details",
 	cta: "En savoir plus",
 	background: <img className="absolute -right-20 -top-20 opacity-60" />,
-	className: "order-last lg:row-start-1 lg:row-end-4 lg:col-start-2 lg:col-end-3",
+	// Pour sm, on conserve l'ordre naturel, mais en lg, cette carte passe en dernière rangée et occupe les deux colonnes
+	className: "order-last lg:col-start-1 lg:col-end-3 lg:row-start-2 lg:row-end-3",
 }
 
 export default function Home() {
@@ -55,7 +58,7 @@ export default function Home() {
 		<>
 			<NavBar />
 			<HeroGeometric2 badge="Soirée Tech" title1="" title2="Tropitech" />
-			<div className="w-2/3 h-auto mx-auto flex flex-col justify-center items-center gap-5 mb-96">
+			<div className="w-11/12 md:w-2/3 h-auto mx-auto flex flex-col justify-center items-center gap-5 mb-20">
 				<div className="w-full grid grid-cols-2 gap-5">
 					<BentoCard key={lieu.name} {...lieu} />
 					<BentoCard key={lineUp.name} {...lineUp} />
