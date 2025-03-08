@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 type TabItem = {
   id: number;
   tile: string;
+  href: string;
 };
 
 // Définition des props pour le composant
@@ -35,7 +36,7 @@ export function AnimatedNavigationTabs({ items }: AnimatedNavigationTabsProps) {
               onMouseEnter={() => setIsHover(item)}
               onMouseLeave={() => setIsHover(null)}
             >
-              <div className="px-5 py-2 relative">
+              <a href={item.href} className="px-5 py-2 relative">
                 {item.tile}
                 {isHover?.id === item.id && (
                   <motion.div
@@ -44,7 +45,7 @@ export function AnimatedNavigationTabs({ items }: AnimatedNavigationTabsProps) {
                     style={{ borderRadius: 6 }}
                   />
                 )}
-              </div>
+              </a>
               {active.id === item.id && (
                 <motion.div
                   layoutId="active"
