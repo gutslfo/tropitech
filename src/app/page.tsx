@@ -27,8 +27,8 @@ const lieu = {
 	Icon: HomeIcon,
 	name: "Lieu",
 	description: "Caves du Château, Rue du Greny",
-	href: "#tarifs",
-	cta: "Je viens",
+	href: "https://www.google.com/maps/place/Ch%C3%A2teau+de+Coppet/@46.31693,6.191324,17z/data=!3m1!4b1!4m6!3m5!1s0x478c67c918f0ab55:0x736062083a0fecf1!8m2!3d46.31693!4d6.191324!16s%2Fm%2F0h3t_dr?entry=ttu&g_ep=EgoyMDI1MDMwNC4wIKXMDSoJLDEwMjExNDU1SAFQAw%3D%3D",
+	cta: "Voir sur Google Maps",
 	background: <img className="absolute -right-20 -top-20 opacity-60" />,
 	// En lg, la carte Lieu occupe la deuxième colonne de la première rangée
 	className: "lg:col-start-2 lg:col-end-3 lg:row-start-1 lg:row-end-2",
