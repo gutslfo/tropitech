@@ -19,7 +19,6 @@ export default function PricingCard() {
 				<CardContent>
 					<CardTitle className="text-4xl mb-2">10.-</CardTitle>
 					<p>- Pour les plus rapides d'entre vous</p>
-					<p>- Plus que 27 places restantes...</p>
 				</CardContent>
 				<CardFooter>
 					<Button variant={"outline"} className="mt-2 w-full">Acheter maintenant</Button>
@@ -33,7 +32,6 @@ export default function PricingCard() {
 				<CardContent>
 					<CardTitle className="text-4xl mb-2">15.-</CardTitle>
 					<p>- Pour les plus motivés</p>
-					<p>- Plus que 65 places restantes...</p>
 				</CardContent>
 				<CardFooter>
 					<Button variant={"outline"} className="mt-2 w-full">Acheter maintenant</Button>
@@ -47,7 +45,6 @@ export default function PricingCard() {
 				<CardContent>
 					<CardTitle className="text-4xl mb-2">18.-</CardTitle>
 					<p>- Pour les foufous de sochaux</p>
-					<p>- Plus que... non jrgl c'est illimité</p>
 				</CardContent>
 				<CardFooter className="w-full self-end">
 					<Button variant={"outline"} className="mt-2 w-full">Acheter maintenant</Button>
