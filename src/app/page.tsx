@@ -11,6 +11,7 @@ import { BentoCard } from "@/components/ui/bento-grid";
 import { Tilt } from "@/components/ui/tilt";
 import PricingCard from "@/components/lp/pricing";
 import { FAQ } from "@/components/lp/faq";
+import { HeroVideoDialog } from "@/components/ui/hero-video-dialog";
 
 const date = {
 	Icon: CalendarIcon,
@@ -115,6 +116,15 @@ export default function Home() {
 					</Tilt>
 				</div> 
 			</div> */}
+			<div className="relative w-11/12 md:w-2/3 mx-auto mb-20">
+			<HeroVideoDialog
+				className="block"
+				animationStyle="from-center"
+				videoSrc="/video.mp4"
+				thumbnailSrc="/IMG_0747.jpg"
+				thumbnailAlt="Hero Video"
+			/>
+			</div>
 			<FAQ />
 		</>
 	);

@@ -102,8 +102,8 @@ function HeroGeometric2({
   };
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-[#030303]">
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.05] via-transparent to-rose-500/[0.05] blur-3xl" />
+    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-black">
+      <div className="absolute inset-0 blur-3xl" />
 
       <div className="absolute inset-0 overflow-hidden">
         <TropicalShape
@@ -192,7 +192,7 @@ function HeroGeometric2({
         </div>
       </div>
 
-      <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-transparent to-[#030303]/80 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black pointer-events-none" />
     </div>
   );
 }
