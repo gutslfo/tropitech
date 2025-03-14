@@ -11,19 +11,19 @@ import { Tilt } from "../ui/tilt"
 	<div id="faq" className="w-11/12 md:w-2/3 mx-auto flex justify-center items-center gap-5 mb-44">
 	  <Accordion type="single" collapsible className="w-full">
 		<AccordionItem value="item-1">
-		  <AccordionTrigger className="text-xl">C'est facile d'accès ?</AccordionTrigger>
+		  <AccordionTrigger className="text-xl">Est-ce facile d'accès ?</AccordionTrigger>
 		  <AccordionContent className="ml-5 text-lg my-2">
 			Oui, c'est à 3min à pied de la gare de Coppet.
 		  </AccordionContent>
 		</AccordionItem>
 		<AccordionItem value="item-2">
-		  <AccordionTrigger className="text-xl">Y'aura du bon son ?</AccordionTrigger>
+		  <AccordionTrigger className="text-xl">Quelles sont les styles musicaux ?</AccordionTrigger>
 		  <AccordionContent className="ml-5 text-lg my-2">
-			Oohhh que oui mon pote
+			Tech sa grand-mère
 		  </AccordionContent>
 		</AccordionItem>
 		<AccordionItem value="item-3">
-		  <AccordionTrigger className="text-xl">Ça ressemble à quoi ?</AccordionTrigger>
+		  <AccordionTrigger className="text-xl">À quoi ressemble l'événement ?</AccordionTrigger>
 		  <AccordionContent className="ml-5 text-lg my-2">
 			<div className="w-full grid grid-cols-1 md:grid-cols-3 place-items-center place-content-between gap-5">
 								<Tilt rotationFactor={8} isRevese>

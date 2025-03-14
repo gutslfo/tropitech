@@ -14,11 +14,9 @@ export default function PricingCard() {
 			<Card className="min-w-44">
 				<CardHeader>
 					<CardTitle>Early Bird</CardTitle>
-					<CardDescription>Uniquement 30 places disponibles</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<CardTitle className="text-4xl mb-2">10.-</CardTitle>
-					<p>- Pour les plus rapides d'entre vous</p>
 				</CardContent>
 				<CardFooter>
 					<Button variant={"outline"} className="mt-2 w-full">Acheter maintenant</Button>
@@ -27,11 +25,9 @@ export default function PricingCard() {
 			<Card className="min-w-44">
 				<CardHeader>
 					<CardTitle>2nd Release</CardTitle>
-					<CardDescription>Uniquement 70 places disponibles</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<CardTitle className="text-4xl mb-2">15.-</CardTitle>
-					<p>- Pour les plus motivés</p>
 				</CardContent>
 				<CardFooter>
 					<Button variant={"outline"} className="mt-2 w-full">Acheter maintenant</Button>
@@ -40,11 +36,9 @@ export default function PricingCard() {
 			<Card className="min-w-44">
 				<CardHeader>
 					<CardTitle>3rd Release</CardTitle>
-					<CardDescription>Places illimitées</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<CardTitle className="text-4xl mb-2">18.-</CardTitle>
-					<p>- Pour les foufous de sochaux</p>
 				</CardContent>
 				<CardFooter className="w-full self-end">
 					<Button variant={"outline"} className="mt-2 w-full">Acheter maintenant</Button>
