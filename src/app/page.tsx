@@ -27,7 +27,7 @@ const date = {
 const lieu = {
 	Icon: HomeIcon,
 	name: "Lieu",
-	description: "Caves du Château, Rue du Greny",
+	description: "Coopet, Caves du Château, Rue du Greny",
 	href: "https://maps.app.goo.gl/7D6145TF1Q7NVCnB6",
 	cta: "Voir sur Google Maps",
 	background: <img className="absolute -right-20 -top-20 opacity-60" />,
@@ -53,7 +53,7 @@ const lineUp = {
 			<span className="block h-2" />
 			01:30 - Cadence
 			<span className="block h-2" />
-			03:00 - Götze B2B Venuss
+			03:00 - Götz B2B Venuss
 		</>
 	),
 	href: "#tarifs",
