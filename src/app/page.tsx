@@ -53,7 +53,7 @@ const lineUp = {
 			<span className="block h-2" />
 			01:30 - Cadence
 			<span className="block h-2" />
-			03:00 - Götze b2b Venuss
+			03:00 - Götze B2B Venuss
 		</>
 	),
 	href: "#tarifs",
