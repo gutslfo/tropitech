@@ -14,6 +14,7 @@ export default function PricingCard() {
 			<Card className="min-w-44">
 				<CardHeader>
 					<CardTitle>Early Bird</CardTitle>
+					<CardDescription>Plus que 9 places restantes</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<CardTitle className="text-4xl mb-2">10.-</CardTitle>
@@ -25,6 +26,7 @@ export default function PricingCard() {
 			<Card className="min-w-44">
 				<CardHeader>
 					<CardTitle>2nd Release</CardTitle>
+					<CardDescription>Plus que 26 places restantes</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<CardTitle className="text-4xl mb-2">15.-</CardTitle>
@@ -36,6 +38,7 @@ export default function PricingCard() {
 			<Card className="min-w-44">
 				<CardHeader>
 					<CardTitle>3rd Release</CardTitle>
+					<CardDescription>Places illimitées</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<CardTitle className="text-4xl mb-2">18.-</CardTitle>

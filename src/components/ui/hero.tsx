@@ -3,6 +3,14 @@
 import { motion } from "framer-motion";
 import { Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import localFont from "next/font/local";
+import Image from "next/image";
+
+const barbara = localFont({
+  src: "../../../fonts/barbra/Barbra-Regular.otf",
+  variable: "--font-barbara",
+  display: "swap",
+});
 
 function TropicalShape({
   className,
@@ -38,9 +46,7 @@ function TropicalShape({
       className={cn("absolute", className)}
     >
       <motion.div
-        animate={{
-          y: [0, 30, 0],
-        }}
+        animate={{ y: [0, 30, 0] }}
         transition={{
           duration: 10,
           repeat: Number.POSITIVE_INFINITY,
@@ -103,9 +109,29 @@ function HeroGeometric2({
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-black">
-      <div className="absolute inset-0 blur-3xl" />
+      {/* 
+        Conteneur de l'image de fond avec dégradé sur les bords.
+        On positionne ce bloc derrière les feuilles en lui donnant un z-index plus faible.
+      */}
+      <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 1 }}>
+        <div className="relative">
+          <Image
+            src="/logo.jpg"
+            alt="Logo"
+            width={400}
+            height={400}
+            className="rounded-full opacity-30 filter brightness-90"
+          />
+          {/* Dégradé radial pour assombrir les bords */}
+          <div
+            className="absolute inset-0 rounded-full pointer-events-none"
+            style={{ background: "radial-gradient(circle, transparent 1%, black 100%)" }}
+          />
+        </div>
+      </div>
 
-      <div className="absolute inset-0 overflow-hidden">
+      {/* Feuilles (formes tropicales) placées au-dessus de l'image */}
+      <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 2 }}>
         <TropicalShape
           delay={0.3}
           width={600}
@@ -119,7 +145,7 @@ function HeroGeometric2({
           width={500}
           height={150}
           rotate={-15}
-          className="right-[-0%] md:right-[0%] top-[65%] md:top-[75%]"
+          className="right-0 top-[65%] md:top-[75%]"
         />
 
         <TropicalShape
@@ -145,8 +171,18 @@ function HeroGeometric2({
           rotate={-25}
           className="left-[10%] md:left-[25%] top-[12%] md:top-[10%]"
         />
+
+		<TropicalShape
+          delay={0.7}
+          width={300}
+          height={120}
+          rotate={30}
+          className="left-[80%] top-[35%] hidden md:block"
+        />
+
       </div>
 
+      {/* Contenu principal */}
       <div className="relative z-10 container mx-auto px-4 md:px-6">
         <div className="max-w-3xl mx-auto text-center">
           <motion.div
@@ -154,7 +190,7 @@ function HeroGeometric2({
             variants={fadeUpVariants}
             initial="hidden"
             animate="visible"
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] mb-8 md:mb-12"
+            className="hidden items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] mb-8 md:mb-12"
           >
             <Circle className="h-2 w-2 fill-[#1FFF44]" />
             <span className="text-sm text-white/60 tracking-wide">
@@ -167,11 +203,13 @@ function HeroGeometric2({
             variants={fadeUpVariants}
             initial="hidden"
             animate="visible"
+			className="mt-32"
           >
             <h1 className="text-[60px] md:text-8xl font-bold mb-6 md:mb-8 tracking-tight">
               <span
                 className={cn(
-                  "bg-clip-text text-transparent bg-gradient-to-r from-zinc-200 via-zinc-400 to-zinc-600"
+                  "bg-clip-text text-transparent bg-gradient-to-r from-zinc-200 via-zinc-400 to-zinc-600",
+                  barbara.className
                 )}
               >
                 {title2}
@@ -186,13 +224,17 @@ function HeroGeometric2({
             animate="visible"
           >
             <p className="text-base sm:text-lg md:text-xl text-white/40 mb-8 leading-relaxed font-light tracking-wide max-w-xl mx-auto px-4">
-              Vous avez intérêt à venir sinon je vous arrache vos grand-mères et vous
+			
             </p>
           </motion.div>
         </div>
       </div>
 
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black pointer-events-none" />
+      {/* Optionnel : Overlay de dégradé global (si besoin) */}
+      <div
+        className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black via-transparent to-black"
+        style={{ zIndex: 3 }}
+      />
     </div>
   );
 }

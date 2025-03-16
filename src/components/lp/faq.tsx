@@ -5,6 +5,19 @@ import {
 	AccordionTrigger,
   } from "@/components/ui/accordion"
 import { Tilt } from "../ui/tilt"
+import Image from "next/image"
+
+const imgs = [
+	{id: 1, src: "/images/1.jpg"},
+	{id: 2, src: "/images/2.jpg"},
+	{id: 3, src: "/images/3.jpg"},
+	{id: 4, src: "/images/4.jpg"},
+	{id: 5, src: "/images/5.jpg"},
+	{id: 6, src: "/images/6.jpg"},
+	{id: 7, src: "/images/7.jpg"},
+	{id: 8, src: "/images/8.jpg"},
+	{id: 9, src: "/images/9.jpg"}
+]
   
   export function FAQ() {
 	return (
@@ -17,16 +30,16 @@ import { Tilt } from "../ui/tilt"
 		  </AccordionContent>
 		</AccordionItem>
 		<AccordionItem value="item-2">
-		  <AccordionTrigger className="text-xl">Quelles sont les styles musicaux ?</AccordionTrigger>
+		  <AccordionTrigger className="text-xl">Qu'est-ce que Tropitech ?</AccordionTrigger>
 		  <AccordionContent className="ml-5 text-lg my-2">
-			Tech sa grand-mère
+			TropiTech est une expérience immersive mêlant musique électronique et scénographie tropicale dans un cadre atypique.<br/><br/>Organisée dans les Caves du Château de Coppet, cette soirée propose un voyage sonore évolutif, de la house à la techno, porté par des artistes émergents et underground.<br/><br/>L’objectif : créer une atmosphère unique où la fête prend une dimension sensorielle, entre basses vibrantes et décor exotique.
 		  </AccordionContent>
 		</AccordionItem>
 		<AccordionItem value="item-3">
 		  <AccordionTrigger className="text-xl">À quoi ressemble l'événement ?</AccordionTrigger>
 		  <AccordionContent className="ml-5 text-lg my-2">
 			<div className="w-full grid grid-cols-1 md:grid-cols-3 place-items-center place-content-between gap-5">
-								<Tilt rotationFactor={8} isRevese>
+								{/* <Tilt rotationFactor={8} isRevese>
 								<div
 									style={{
 									borderRadius: '12px',
@@ -67,7 +80,25 @@ import { Tilt } from "../ui/tilt"
 									className='h-80 w-full object-cover'
 									/>
 								</div>
-								</Tilt>
+								</Tilt> */}
+								{imgs.map((img) => (
+									<Tilt key={img.id} rotationFactor={8} isRevese>
+									<div
+										style={{
+										borderRadius: '12px',
+										}}
+										className='flex flex-col overflow-hidden border border-zinc-950/10 bg-white dark:border-zinc-50/10 dark:bg-zinc-900'
+									>
+										<Image
+										width={300}
+										height={300}
+										src={img.src}
+										alt='Image Tropitech'
+										className='h-80 w-full object-cover'
+										/>
+									</div>
+									</Tilt>
+								))}
 							</div>
 		  </AccordionContent>
 		</AccordionItem>

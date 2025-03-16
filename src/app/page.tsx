@@ -41,13 +41,19 @@ const lineUp = {
 	description: (
 		<>
 			<br />
-			21:00 - JCVD (House)
+			20:00 - Moona
 			<span className="block h-2" />
-			22:00 - Michael Jackson (Acide Core)
+			21:00 - Edo b2b Lutchi
 			<span className="block h-2" />
-			23:00 - Jeffrey Damer (Reggae)
+			22:00 - Nasdas
 			<span className="block h-2" />
-			00:00 - Mickey Mouse (Trap)
+			23:00 - Polska
+			<span className="block h-2" />
+			00:00 - EREIB
+			<span className="block h-2" />
+			01:30 - Cadence
+			<span className="block h-2" />
+			03:00 - Götze b2b Venuss
 		</>
 	),
 	href: "#tarifs",
@@ -61,7 +67,7 @@ export default function Home() {
 	return (
 		<>
 			<NavBar />
-			<HeroGeometric2 badge="Soirée Tech" title1="" title2="Tropitech" />
+			<HeroGeometric2 badge="Echoes of the Jungle" title1="" title2="Tropitech" />
 			<div id="info" className="w-11/12 md:w-2/3 h-auto mx-auto flex flex-col justify-center items-center gap-5 my-20">
 				<div className="w-full grid grid-cols-2 gap-5">
 					<BentoCard key={lieu.name} {...lieu} />
