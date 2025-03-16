@@ -28,13 +28,13 @@ const imgs = [
 	return (
 	<div id="faq" className="w-11/12 md:w-2/3 mx-auto flex justify-center items-center gap-5 mb-44">
 	  <Accordion type="single" collapsible className="w-full">
-		<AccordionItem value="item-2">
+		<AccordionItem value="item-1">
 		  <AccordionTrigger className="text-xl">Qu'est-ce que Tropitech ?</AccordionTrigger>
 		  <AccordionContent className="ml-5 text-lg my-2">
 			Tropitech est une expérience immersive mêlant musique électronique et scénographie tropicale dans un cadre atypique.<br/><br/>Organisée dans les Caves du Château de Coppet, cette soirée propose un voyage sonore évolutif, de la house à la techno, porté par des artistes émergents et underground.<br/><br/>L’objectif : créer une atmosphère unique où la fête prend une dimension sensorielle, entre basses vibrantes et décor exotique.
 		  </AccordionContent>
 		</AccordionItem>
-		<AccordionItem value="item-3">
+		<AccordionItem value="item-2">
 		  <AccordionTrigger className="text-xl">À quoi ressemble l'événement ?</AccordionTrigger>
 		  <AccordionContent className="ml-5 text-lg my-2">
 			<div className="w-full grid grid-cols-1 md:grid-cols-3 place-items-center place-content-between gap-5">
@@ -101,13 +101,19 @@ const imgs = [
 							</div>
 		  </AccordionContent>
 		</AccordionItem>
-		<AccordionItem value="item-1">
+		<AccordionItem value="item-3">
 		  <AccordionTrigger className="text-xl">Est-ce facile d'accès ?</AccordionTrigger>
 		  <AccordionContent className="ml-5 text-lg my-2">
 			Oui, c'est à 3min à pied de la gare de Coppet.<br/><br/>Lien Google Maps :<br/><span className="block h-2" /><Link href={"https://maps.app.goo.gl/7D6145TF1Q7NVCnB6"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Caves du Château, Rue du Greny</Link>
 		  </AccordionContent>
 		</AccordionItem>
 		<AccordionItem value="item-4">
+		  <AccordionTrigger className="text-xl">Y aura-t-il de quoi se restaurer sur place ?</AccordionTrigger>
+		  <AccordionContent className="ml-5 text-lg my-2">
+			Oui, il y'aura de quoi se restaurer
+		  </AccordionContent>
+		</AccordionItem>
+		<AccordionItem value="item-5">
 		  <AccordionTrigger className="text-xl">Où retrouver les artistes ?</AccordionTrigger>
 		  <AccordionContent className="ml-5 text-lg my-2">
 			Edo :<br/><span className="block h-2" /><Link href={"https://soundcloud.com/edoardo-failla-545458741/lets-just-grab-one-beer?si=673fc458937547f6970f6526dd820328&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><FaSoundcloud className="size-5" />Soundcloud</Link>
