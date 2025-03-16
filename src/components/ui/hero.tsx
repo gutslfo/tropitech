@@ -120,7 +120,7 @@ function HeroGeometric2({
             alt="Logo"
             width={400}
             height={400}
-            className="rounded-full opacity-30 filter brightness-90"
+            className="rounded-full opacity-60 filter brightness-90"
           />
           {/* Dégradé radial pour assombrir les bords */}
           <div
