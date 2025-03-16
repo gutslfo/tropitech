@@ -3,7 +3,7 @@
 import NavBar from "@/components/lp/nav";
 import { HeroGeometric2 } from "@/components/ui/hero";
 import {
-	HomeIcon,
+	DiscIcon,
 	CalendarIcon,
 	ListBulletIcon
 } from "@radix-ui/react-icons";
@@ -37,8 +37,8 @@ const lieu = {
 }
 
 const lineUp = {
-	Icon: ListBulletIcon,
-	name: "LineUp",
+	Icon: DiscIcon,
+	name: "Lineup",
 	description: (
 		<>
 			<br />
