@@ -8,6 +8,9 @@ import { Tilt } from "../ui/tilt"
 import Image from "next/image"
 import Link from "next/link"
 import { ExternalLink } from "lucide-react"
+import { AiFillSpotify } from "react-icons/ai";
+import { FaSoundcloud } from "react-icons/fa6";
+import { FaInstagram } from "react-icons/fa";
 
 const imgs = [
 	{id: 1, src: "/images/1.jpg"},
@@ -107,21 +110,21 @@ const imgs = [
 		<AccordionItem value="item-4">
 		  <AccordionTrigger className="text-xl">Où retrouver les artistes ?</AccordionTrigger>
 		  <AccordionContent className="ml-5 text-lg my-2">
-			Edo :<br/><span className="block h-2" /><Link href={"https://soundcloud.com/edoardo-failla-545458741/lets-just-grab-one-beer?si=673fc458937547f6970f6526dd820328&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Soundcloud</Link>
+			Edo :<br/><span className="block h-2" /><Link href={"https://soundcloud.com/edoardo-failla-545458741/lets-just-grab-one-beer?si=673fc458937547f6970f6526dd820328&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><FaSoundcloud className="size-5" />Soundcloud</Link>
 			<br/>
-			EREIB :<br/><span className="block h-2" /><Link href={"https://soundcloud.com/lakesidebasement/basement-podcast-x-introspective-ereib?in=ereib/sets/podcasts&si=62b33d65021b4055a126d7a7915a0055&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Soundcloud</Link>
-			<Link href={"https://open.spotify.com/intl-fr/artist/1cCaSfo9CEmb8a3Le0NCqo?si=BpcMUiAPQrud8xXco_DbXw"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Spotify</Link>
-			<Link href={"https://www.instagram.com/ereib_?igsh=MTFpNmRrdzFzY2ptZg=="} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Instagram</Link>
+			EREIB :<br/><span className="block h-2" /><Link href={"https://soundcloud.com/lakesidebasement/basement-podcast-x-introspective-ereib?in=ereib/sets/podcasts&si=62b33d65021b4055a126d7a7915a0055&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><FaSoundcloud className="size-5" />Soundcloud</Link>
+			<Link href={"https://open.spotify.com/intl-fr/artist/1cCaSfo9CEmb8a3Le0NCqo?si=BpcMUiAPQrud8xXco_DbXw"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><AiFillSpotify className="size-5" />Spotify</Link>
+			<Link href={"https://www.instagram.com/ereib_?igsh=MTFpNmRrdzFzY2ptZg=="} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><FaInstagram className="size-5" />Instagram</Link>
 			<br/>
-			Cadence :<br/><span className="block h-2" /><Link href={"https://soundcloud.com/mitsu2000/mitsucast-067-cadence?in=cadence_live/sets/mixes&si=04948642d6804029a927ce8e691f687d&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Soundcloud</Link>
-			<Link href={"https://open.spotify.com/intl-fr/artist/1y4Zrf8tJQFH412BRpv3U3?si=atl-OlheRNqjah7AtFBNiA"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Spotify</Link>
-			<Link href={"https://www.instagram.com/cadence_live?igsh=YzA2bGNid3ptN2Rv"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Instagram</Link>
+			Cadence :<br/><span className="block h-2" /><Link href={"https://soundcloud.com/mitsu2000/mitsucast-067-cadence?in=cadence_live/sets/mixes&si=04948642d6804029a927ce8e691f687d&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><FaSoundcloud className="size-5" />Soundcloud</Link>
+			<Link href={"https://open.spotify.com/intl-fr/artist/1y4Zrf8tJQFH412BRpv3U3?si=atl-OlheRNqjah7AtFBNiA"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><AiFillSpotify className="size-5" />Spotify</Link>
+			<Link href={"https://www.instagram.com/cadence_live?igsh=YzA2bGNid3ptN2Rv"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><FaInstagram className="size-5" />Instagram</Link>
 		    <br/>
-			Götz :<br/><span className="block h-2" /><Link href={"https://soundcloud.com/gotzzzz/immersion?si=3b328cbb8c8541dea670dffda265ad90&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Soundcloud</Link>
-			<Link href={"https://www.instagram.com/pierrtran_?igsh=MjNqeG5qZ2JjM2U%3D&utm_source=qr"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Instagram</Link>
+			Götz :<br/><span className="block h-2" /><Link href={"https://soundcloud.com/gotzzzz/immersion?si=3b328cbb8c8541dea670dffda265ad90&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><FaSoundcloud className="size-5" />Soundcloud</Link>
+			<Link href={"https://www.instagram.com/pierrtran_?igsh=MjNqeG5qZ2JjM2U%3D&utm_source=qr"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><FaInstagram className="size-5" />Instagram</Link>
 			<br/>
-			Venuss :<br/><span className="block h-2" /><Link href={"https://soundcloud.com/user-875894149/venuss-1-home-set_1024?si=cdb8cc00a0da417eb3e03d3daf4bdc1e&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Soundcloud</Link>
-			<Link href={"https://www.instagram.com/__5venuss._?igsh=bjNreDZveXY0eWpw"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Instagram</Link>
+			Venuss :<br/><span className="block h-2" /><Link href={"https://soundcloud.com/user-875894149/venuss-1-home-set_1024?si=cdb8cc00a0da417eb3e03d3daf4bdc1e&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><FaSoundcloud className="size-5" />Soundcloud</Link>
+			<Link href={"https://www.instagram.com/__5venuss._?igsh=bjNreDZveXY0eWpw"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><FaInstagram className="size-5" />Instagram</Link>
 		  </AccordionContent>
 		</AccordionItem>
 	  </Accordion>
