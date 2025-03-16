@@ -107,7 +107,7 @@ const imgs = [
 		<AccordionItem value="item-4">
 		  <AccordionTrigger className="text-xl">Où retrouver les artistes ?</AccordionTrigger>
 		  <AccordionContent className="ml-5 text-lg my-2">
-			Edo b2b Lutchi :<br/><span className="block h-2" /><Link href={"https://soundcloud.com/edoardo-failla-545458741/lets-just-grab-one-beer?si=673fc458937547f6970f6526dd820328&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Soundcloud</Link>
+			Edo :<br/><span className="block h-2" /><Link href={"https://soundcloud.com/edoardo-failla-545458741/lets-just-grab-one-beer?si=673fc458937547f6970f6526dd820328&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Soundcloud</Link>
 			<br/>
 			EREIB :<br/><span className="block h-2" /><Link href={"https://soundcloud.com/lakesidebasement/basement-podcast-x-introspective-ereib?in=ereib/sets/podcasts&si=62b33d65021b4055a126d7a7915a0055&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Soundcloud</Link>
 			<br/>
@@ -115,7 +115,7 @@ const imgs = [
 		    <br/>
 			Götz :<br/><span className="block h-2" /><Link href={"https://soundcloud.com/gotzzzz/immersion?si=3b328cbb8c8541dea670dffda265ad90&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Soundcloud</Link>
 		    <br/>
-			Cadence :<br/><span className="block h-2" /><Link href={"https://soundcloud.com/user-875894149/venuss-1-home-set_1024?si=cdb8cc00a0da417eb3e03d3daf4bdc1e&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Soundcloud</Link>
+			Venuss :<br/><span className="block h-2" /><Link href={"https://soundcloud.com/user-875894149/venuss-1-home-set_1024?si=cdb8cc00a0da417eb3e03d3daf4bdc1e&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Soundcloud</Link>
 		  </AccordionContent>
 		</AccordionItem>
 	  </Accordion>

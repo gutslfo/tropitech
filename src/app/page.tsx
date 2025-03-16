@@ -43,7 +43,7 @@ const lineUp = {
 			<br />
 			20:00 - Moona
 			<span className="block h-2" />
-			21:00 - Edo b2b Lutchi
+			21:00 - Edo B2B Lutchi
 			<span className="block h-2" />
 			22:00 - Nasdas
 			<span className="block h-2" />
