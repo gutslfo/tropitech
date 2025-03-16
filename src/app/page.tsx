@@ -12,6 +12,7 @@ import { Tilt } from "@/components/ui/tilt";
 import PricingCard from "@/components/lp/pricing";
 import { FAQ } from "@/components/lp/faq";
 import { HeroVideoDialog } from "@/components/ui/hero-video-dialog";
+import { Castle } from "lucide-react";
 
 const date = {
 	Icon: CalendarIcon,
@@ -25,7 +26,7 @@ const date = {
 }
 
 const lieu = {
-	Icon: HomeIcon,
+	Icon: Castle,
 	name: "Lieu",
 	description: "Coopet, Caves du Château, Rue du Greny",
 	href: "https://maps.app.goo.gl/7D6145TF1Q7NVCnB6",
