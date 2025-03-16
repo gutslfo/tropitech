@@ -41,7 +41,7 @@ const lineUp = {
 	description: (
 		<>
 			<br />
-			20:00 - Moona
+			20:00 - MOONA
 			<span className="block h-2" />
 			21:00 - Edo B2B Lutchi
 			<span className="block h-2" />
