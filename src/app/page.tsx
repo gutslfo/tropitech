@@ -13,6 +13,8 @@ import PricingCard from "@/components/lp/pricing";
 import { FAQ } from "@/components/lp/faq";
 import { HeroVideoDialog } from "@/components/ui/hero-video-dialog";
 import { Castle } from "lucide-react";
+import Link from "next/link";
+import { FaInstagram } from "react-icons/fa";
 
 const date = {
 	Icon: CalendarIcon,
@@ -46,9 +48,7 @@ const lineUp = {
 			<span className="block h-2" />
 			21:00 - Edo B2B Lutchi
 			<span className="block h-2" />
-			22:00 - Nasdas
-			<span className="block h-2" />
-			23:00 - Polska
+			22:00 - Cazoule B2B Alzing
 			<span className="block h-2" />
 			00:00 - EREIB
 			<span className="block h-2" />
@@ -133,6 +133,16 @@ export default function Home() {
 			/>
 			</div>
 			<FAQ />
+			<div className="w-full px-20 border-t grid grid-cols-1 md:grid-cols-2 p-8 gap-3">
+				<div className="w-full flex justify-center md:justify-start items-center gap-1">
+					<FaInstagram className="size-5" />
+					<Link href={"https://www.instagram.com/tropi.tech?igsh=MXJnazQ5bXA0ejNxdA=="} className="text-lg font-medium hover:underline">Tropitech</Link>
+				</div>
+				<div className="w-full flex flex-col md:flex-row justify-center md:justify-end items-center gap-3 md:gap-10">
+					<Link href={"/cgu"} className="text-lg font-medium hover:underline">CGU</Link>
+					<Link href={"/pc"} className="text-lg font-medium hover:underline">Politique de Confidentialité</Link>
+				</div>
+			</div>
 		</>
 	);
 }

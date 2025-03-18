@@ -26,7 +26,7 @@ const imgs = [
   
   export function FAQ() {
 	return (
-	<div id="faq" className="w-11/12 md:w-2/3 mx-auto flex justify-center items-center gap-5 mb-44">
+	<div id="faq" className="w-11/12 md:w-2/3 mx-auto flex justify-center items-center gap-5 mb-24 md:mb-36">
 	  <Accordion type="single" collapsible className="w-full">
 		<AccordionItem value="item-1">
 		  <AccordionTrigger className="text-xl">Qu'est-ce que Tropitech ?</AccordionTrigger>

@@ -180,6 +180,78 @@ function HeroGeometric2({
           className="left-[80%] top-[35%] hidden md:block"
         />
 
+		<TropicalShape
+          delay={0.7}
+          width={300}
+          height={120}
+          rotate={-30}
+          className="left-[15%] top-[55%] hidden md:block"
+        />
+
+		<TropicalShape
+          delay={0.7}
+          width={300}
+          height={120}
+          rotate={15}
+          className="left-[65%] top-[55%] hidden md:block"
+        />
+
+		<TropicalShape
+          delay={0.7}
+          width={200}
+          height={180}
+          rotate={15}
+          className="left-[55%] top-[75%] hidden md:block"
+        />
+
+		<TropicalShape
+          delay={0.7}
+          width={300}
+          height={160}
+          rotate={-2}
+          className="left-[75%] top-[5%] hidden md:block"
+        />
+
+		<TropicalShape
+          delay={0.7}
+          width={300}
+          height={120}
+          rotate={5}
+          className="left-[50%] top-[5%] hidden md:block"
+        />
+
+		<TropicalShape
+          delay={0.7}
+          width={330}
+          height={150}
+          rotate={18}
+          className="left-[0.1%] top-[58%] hidden md:block"
+        />
+
+		<TropicalShape
+          delay={0.7}
+          width={300}
+          height={140}
+          rotate={-5}
+          className="left-[0.1%] top-[1%] hidden md:block"
+        />	
+
+		<TropicalShape
+          delay={0.7}
+          width={280}
+          height={100}
+          rotate={-5}
+          className="left-[18%] top-[30%] hidden md:block"
+        />
+
+		<TropicalShape
+          delay={0.7}
+          width={280}
+          height={150}
+          rotate={-10}
+          className="left-[30%] top-[75%] hidden md:block"
+        />
+
       </div>
 
       {/* Contenu principal */}
@@ -203,7 +275,7 @@ function HeroGeometric2({
             variants={fadeUpVariants}
             initial="hidden"
             animate="visible"
-			className="mt-32"
+			className="mt-18"
           >
             <h1 className="text-[60px] md:text-8xl font-bold mb-6 md:mb-8 tracking-tight">
               <span
