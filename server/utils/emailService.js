@@ -1,4 +1,4 @@
-const { generateTicketPDF } = require("./generateTicket"); 
+const { generateTicketPDF } = require("./generateTicket");
 const Ticket = require("../models/ticket");
 const nodemailer = require("nodemailer");
 
@@ -7,7 +7,7 @@ const nodemailer = require("nodemailer");
  * @param {string} email - Email du destinataire
  * @param {string} name - Nom de l'utilisateur
  * @param {string} firstName - Prénom de l'utilisateur
- * @param {Object} ticketData - Données du billet (PDF, QR code)
+ * @param {Object} ticketData - Données du billet (PDF, QR code, etc.)
  */
 const sendTicketEmail = async (email, name, firstName, ticketData) => {
     try {
@@ -16,8 +16,8 @@ const sendTicketEmail = async (email, name, firstName, ticketData) => {
         const transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
+                user: process.env.EMAIL_USER, // => compte Gmail
+                pass: process.env.EMAIL_PASS, // => mot de passe d’application
             },
         });
 

@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 
 const TicketAvailability = () => {
   const [ticketsData, setTicketsData] = useState({
-    earlyBird: { total: 30, remaining: 0, price: 25 },
-    secondRelease: { total: 60, remaining: 0, price: 35 },
-    thirdRelease: { total: 160, remaining: 0, price: 45 }
+    earlyBird: { total: 30, remaining: 0, price: 10 },
+    secondRelease: { total: 60, remaining: 0, price: 15 },
+    thirdRelease: { total: 160, remaining: 0, price: 18 }
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -114,7 +114,7 @@ const TicketAvailability = () => {
                     <div className="flex justify-between items-center">
                       <span>Places restantes:</span>
                       <span className="font-semibold text-yellow-300">
-                        {data.remaining} / {data.total}
+                        {data.remaining}
                       </span>
                     </div>
                   ) : (
@@ -135,7 +135,6 @@ const TicketAvailability = () => {
           {activeCategory && (
             <div className="mt-6 text-center">
               <p>Catégorie active: <span className="font-bold text-yellow-300">{formatCategoryName(activeCategory)}</span></p>
-              <p className="text-sm mt-1 text-gray-300">Les billets Early Bird sont vendus en premier, puis les Second Release, et enfin les Third Release.</p>
             </div>
           )}
         </>

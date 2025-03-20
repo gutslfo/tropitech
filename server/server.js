@@ -1,16 +1,12 @@
-
+// server.js
 require("dotenv").config();
-
 const express = require("express");
 const mongoose = require("mongoose");
-const dotenv = require("dotenv");
 const cors = require("cors");
-const paymentRoutes = require("./routes/paymentRoutes");
-const ticketRoutes = require("./routes/ticketRoutes");
-const webhookRoutes = require("./routes/webhookRoutes");
 
-// Charger les variables d'environnement
-dotenv.config();
+// Import des routes
+const ticketRoutes = require("./routes/ticketRoutes"); 
+// Supposez que vous avez aussi paymentRoutes, etc.
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,22 +16,20 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Connexion à la base de données MongoDB
+// Connexion MongoDB 
+// (adaptez l'URI si besoin, vérifiez la variable d'env MONGO_URI)
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ Connecté à MongoDB"))
-  .catch((err) => console.error("❌ Erreur de connexion MongoDB:", err));
+  .catch((err) => console.error("❌ Erreur MongoDB:", err));
 
-// Routes API
-app.use("/api/payment", paymentRoutes);
+// Monte la route /api/ticket
 app.use("/api/ticket", ticketRoutes);
-app.use("/api/webhook", webhookRoutes);
 
-// Route de test
-app.get("/api/test", (req, res) => {
-  res.send("✅ API test fonctionne !");
-});
+// Ex: si vous avez /api/payment, vous faites:
+// const paymentRoutes = require("./routes/paymentRoutes");
+// app.use("/api/payment", paymentRoutes);
 
-// Démarrer le serveur
+// Démarrage du serveur
 app.listen(PORT, () => {
-  console.log(`✅ Serveur en écoute sur http://localhost:${PORT}`);
+  console.log(`✅ Serveur Express en écoute sur http://localhost:${PORT}`);
 });
