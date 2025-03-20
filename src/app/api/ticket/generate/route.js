@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateTicketPDF } from "../../../server/utils/generateTicket";
+import { generateTicketPDF } from "../../../../../server/utils/generateTicket";
 import fs from "fs";
 
 export async function GET(req) {
