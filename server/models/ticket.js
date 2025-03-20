@@ -9,7 +9,7 @@ const TicketSchema = new mongoose.Schema({
 module.exports = mongoose.model("Ticket", TicketSchema);
 
 const express = require("express");
-const Ticket = require("../models/ticket");
+const Ticket = require("./ticket");
 
 const router = express.Router();
 

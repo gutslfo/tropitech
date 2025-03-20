@@ -2,8 +2,9 @@ const express = require("express");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const QRCode = require("qrcode");
 const User = require("../models/User");
-const Ticket = require("../models/Ticket");
+const Ticket = require("../models/ticket");
 const { sendEmail } = require("../utils/emailService");
+
 
 const router = express.Router();
 

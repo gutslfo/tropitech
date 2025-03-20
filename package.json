@@ -6,6 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
+    "server": "node server/server.js",
     "lint": "next lint"
   },
   "dependencies": {
@@ -17,8 +18,14 @@
     "@stripe/stripe-js": "^6.1.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
     "framer-motion": "^12.4.10",
+    "helmet": "^8.1.0",
     "lucide-react": "^0.477.0",
+    "mongoose": "^8.12.1",
+    "morgan": "^1.10.0",
     "motion": "^12.4.10",
     "next": "^15.2.3",
     "nodemailer": "^6.10.0",

@@ -2,8 +2,8 @@ const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const path = require("path");
 const QRCode = require("qrcode");
-const { sendEmail } = require("../utils/emailService");
-const Ticket = require("../models/Ticket");
+const { sendEmail } = require("./emailService");
+const Ticket = require("../models/ticket");
 
 const generateTicketPDF = async (name, firstName, email, paymentId) => {
     return new Promise(async (resolve, reject) => {
