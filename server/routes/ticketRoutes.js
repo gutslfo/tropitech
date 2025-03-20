@@ -1,7 +1,20 @@
 const express = require("express");
 const Ticket = require("../models/ticket");
+const { generateTicketPDF } = require("../utils/generateTicket"); // 📌 Ajout de l'import manquant
 
-const router = express.Router();
+const router = express.Router(); // ✅ Déclaration unique de `router`
+
+// 🔹 Route pour générer un billet PDF
+router.get("/generate/:paymentId", async (req, res) => {
+    try {
+        const { paymentId } = req.params;
+        const filePath = await generateTicketPDF("Jean", "Dupont", "email@exemple.com", paymentId);
+        res.download(filePath);
+    } catch (error) {
+        console.error("❌ Erreur PDF :", error);
+        res.status(500).json({ error: "Erreur lors de la génération du PDF" });
+    }
+});
 
 // 🔹 Configuration du nombre de places par catégorie
 const TOTAL_PLACES = {
@@ -13,12 +26,10 @@ const TOTAL_PLACES = {
 // 🔹 Route pour récupérer le nombre de places restantes par catégorie
 router.get("/places-restantes", async (req, res) => {
     try {
-        // Comptabilisation des billets vendus par catégorie
         const earlyBirdSold = await Ticket.countDocuments({ category: "earlyBird" });
         const secondReleaseSold = await Ticket.countDocuments({ category: "secondRelease" });
         const thirdReleaseSold = await Ticket.countDocuments({ category: "thirdRelease" });
 
-        // Calcul des places restantes
         const placesRestantes = {
             earlyBird: Math.max(0, TOTAL_PLACES.earlyBird - earlyBirdSold),
             secondRelease: Math.max(0, TOTAL_PLACES.secondRelease - secondReleaseSold),
@@ -36,11 +47,11 @@ router.get("/places-restantes", async (req, res) => {
 router.get("/:paymentId", async (req, res) => {
     try {
         const { paymentId } = req.params;
-
         const ticket = await Ticket.findOne({ paymentId });
+
         if (!ticket) return res.status(404).json({ error: "Ticket non trouvé" });
 
-        res.json({ 
+        res.json({
             status: ticket.qrCodeScanned ? "QR Code déjà scanné" : "QR Code valide",
             email: ticket.email,
             category: ticket.category
@@ -55,8 +66,8 @@ router.get("/:paymentId", async (req, res) => {
 router.post("/scan/:paymentId", async (req, res) => {
     try {
         const { paymentId } = req.params;
-
         const ticket = await Ticket.findOne({ paymentId });
+
         if (!ticket) return res.status(404).json({ error: "Ticket non trouvé" });
 
         if (ticket.qrCodeScanned) {
@@ -73,4 +84,4 @@ router.post("/scan/:paymentId", async (req, res) => {
     }
 });
 
-module.exports = router;
+module.exports = router; // ✅ Export correct du `router`
