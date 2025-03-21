@@ -1,7 +1,9 @@
+// src/app/api/ticket/generate/route.js
 import { NextResponse } from "next/server";
-import { generateTicketPDF, sendTicketEmail } from "../../../../../server/utils/emailService";
-import User from "../../../../../server/models/User";
-import Ticket from "../../../../../server/models/ticket";
+import User from "../../../../../server/models/User";  // Corrigé
+import Ticket from "../../../../../server/models/ticket";  // Corrigé
+import { generateTicketPDF, sendTicketEmail } from "../../../../../server/utils/emailService";  // Corrigé
+import fs from "fs";
 
 export async function GET(req) {
     console.log("🔥 API `/api/ticket/generate` appelée !");
@@ -40,7 +42,6 @@ export async function GET(req) {
             console.log(`ℹ️ Ticket existant trouvé avec la catégorie: ${category}`);
         } else {
             // Déterminer la catégorie basée sur le nombre de tickets vendus
-            // On pourrait implémenter une logique plus sophistiquée ici
             const ticketCount = await Ticket.countDocuments();
             
             if (ticketCount < 30) {

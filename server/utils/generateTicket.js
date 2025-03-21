@@ -1,9 +1,9 @@
-// server/utils/generateTicket.js
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 const QRCode = require('qrcode');
 const { createCanvas, loadImage } = require('canvas');
+
 
 /**
  * Crée un QR Code stylisé avec le nom de l'utilisateur
@@ -54,9 +54,9 @@ const createStylishQRCode = async (firstName, lastName, paymentId, outputPath) =
             const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
             if (fs.existsSync(logoPath)) {
                 const logo = await loadImage(logoPath);
-                const logoSize = 120;
+                const logoSize = 200;
                 const logoX = (width - logoSize) / 2;
-                const logoY = (height - logoSize) / 2;
+                const logoY = 10;
                 ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
             } else {
                 console.log(`⚠️ Logo non trouvé à ${logoPath}, QR code généré sans logo`);
@@ -66,20 +66,28 @@ const createStylishQRCode = async (firstName, lastName, paymentId, outputPath) =
             // Continuer sans logo
         }
         
-        // Ajouter le nom au-dessus et en dessous du QR code
+        // Ajouter le PRÉNOM au-dessus du QR code (en majuscules)
         ctx.fillStyle = '#FFFFFF';
         ctx.textAlign = 'center';
         
-        // Prénom au-dessus du QR code
-        ctx.font = 'bold 60px Arial';
+        // Prénom au-dessus du QR code avec une police différente, plus élégante
+        ctx.font = 'bold 80px Arial';
         ctx.fillText(firstName.toUpperCase(), width / 2, qrY - 40);
         
-        // Nom en dessous du QR code
+        // Nom en dessous du QR code avec la même police
         ctx.fillText(lastName.toUpperCase(), width / 2, qrY + 500 + 80);
         
-        // Marque Tropitech en bas
-        ctx.font = 'bold 80px Arial';
-        ctx.fillText('TROPITECH', width / 2, height - 100);
+        // Marque Tropitech en bas avec une police différente, plus distincte
+        const customFontPath = path.join(__dirname, '..', 'assets', 'Barbra-Regular.ttf');  
+        if (fs.existsSync(customFontPath)) {
+            const barbraFont = new Canvas.Font('Barbra', customFontPath); // Charger la police
+            ctx.addFont(barbraFont); // Ajouter la police au canvas
+            ctx.font = '200px Barbra'; // Utiliser la police Barbra avec une taille de 200px
+        } else {
+            console.error(`❌ Police Barbra non trouvée à ${customFontPath}, utilisation de la police par défaut.`);
+            ctx.font = 'bold 200px Impact, fantasy'; // Fallback si la police Barbra est introuvable
+        }
+        ctx.fillText('TROPITECH', width / 2, height - 80);  
         
         // Enregistrer l'image
         const buffer = canvas.toBuffer('image/png');
@@ -94,7 +102,7 @@ const createStylishQRCode = async (firstName, lastName, paymentId, outputPath) =
 };
 
 /**
- * Génère un billet PDF et un QR Code
+ * Génère un billet PDF minimaliste
  * @param {string} name - Nom de l'utilisateur
  * @param {string} firstName - Prénom de l'utilisateur
  * @param {string} email - Email de l'utilisateur
@@ -127,7 +135,7 @@ const generateTicketPDF = async (name, firstName, email, paymentId, category) =>
         // Chemin pour le fichier PDF
         const filePath = path.join(ticketsDir, `ticket_${firstName}_${name}.pdf`);
         
-        // Créer un nouveau document PDF
+        // Créer un nouveau document PDF avec design minimaliste
         const doc = new PDFDocument({
             size: 'A4',
             margin: 50,
@@ -142,76 +150,34 @@ const generateTicketPDF = async (name, firstName, email, paymentId, category) =>
         const stream = fs.createWriteStream(filePath);
         doc.pipe(stream);
         
-        // Ajouter le contenu au PDF avec un design amélioré
-        doc.rect(0, 0, doc.page.width, doc.page.height).fill('#111111');
+        // Fond noir pour un design minimaliste
+        doc.rect(0, 0, doc.page.width, doc.page.height).fill('#000000');
         
-        // Titre
-        doc.font('Helvetica-Bold').fontSize(30).fillColor('#FFFFFF');
-        doc.text('TROPITECH', { align: 'center' });
-              
-        doc.moveDown(2);
-        
-        // Infos utilisateur avec design amélioré
-        const infoX = 100;
-        const labelWidth = 120;
-        
-        doc.fontSize(12).fillColor('#FFFFFF');
-        
-        // Nom
-        doc.text('NOM:', infoX, doc.y);
-        doc.text(`${firstName} ${name}`, infoX + labelWidth, doc.y - doc.currentLineHeight());
-        
-        doc.moveDown(0.5);
-        
-        // Email
-        doc.text('EMAIL:', infoX, doc.y);
-        doc.text(email, infoX + labelWidth, doc.y - doc.currentLineHeight());
-        
-        doc.moveDown(0.5);
-        
-        // Catégorie
-        doc.text('CATÉGORIE:', infoX, doc.y);
-        doc.fillColor('#FFD700'); // Or pour la catégorie
-        doc.text(category, infoX + labelWidth, doc.y - doc.currentLineHeight());
-        doc.fillColor('#FFFFFF');
-        
-        doc.moveDown(0.5);
-        
-        // ID
-        doc.text('ID:', infoX, doc.y);
-        doc.text(paymentId, infoX + labelWidth, doc.y - doc.currentLineHeight());
-        
-        doc.moveDown(2);
-        
-        // Infos événement
-        doc.fontSize(14).fillColor('#00FFFF'); // Bleu clair pour l'en-tête de l'événement
-        doc.text('INFORMATIONS ÉVÉNEMENT', { align: 'center' });
-        doc.moveDown(0.5);
-        
-        doc.fontSize(12).fillColor('#FFFFFF');
-        doc.text('DATE:', infoX, doc.y);
-        doc.text('19 Avril 2025', infoX + labelWidth, doc.y - doc.currentLineHeight());
-        
-        doc.moveDown(0.5);
-        
-        doc.text('LIEU:', infoX, doc.y);
-        doc.text('Caves du Château, Rue du Greny, Coppet', infoX + labelWidth, doc.y - doc.currentLineHeight());
-        
-        doc.moveDown(3);
-        
-        // Ajouter le QR Code
-        doc.fontSize(14).fillColor('#00FFFF');
-        doc.text('PRÉSENTEZ CE QR CODE À L\'ENTRÉE', { align: 'center' });
-        doc.moveDown(1);
-        
-        // Centrer le QR code
+        // Logo en haut (centré)
+        try {
+            const logoPath = path.join(__dirname, '..', 'assets', 'logo.png'); // Use a PNG file
+            if (fs.existsSync(logoPath)) {
+                const logoWidth = 500;
+                const logoX = (doc.page.width - logoWidth) / 2;
+                const logoY = 20;
+                doc.image(logoPath, logoX, 50, {
+                    width: logoWidth
+                });
+            }
+        } catch (logoError) {
+            console.error(`❌ Erreur d'ajout du logo:`, logoError);
+            // Continue without the logo
+        }
+
+        // Add the QR Code (central element)
         try {
             const qrImage = doc.openImage(qrCodePath);
-            const qrWidth = 300;
-            const qrHeight = (qrWidth / qrImage.width) * qrImage.height;
+            const qrWidth = 150;
+            const qrHeight = 150
             const qrX = (doc.page.width - qrWidth) / 2;
-            
-            doc.image(qrCodePath, qrX, doc.y, {
+            const qrY = (height - qrHeight) / 2;
+
+            doc.image(qrCodePath, qrX, 150, {
                 width: qrWidth,
                 height: qrHeight
             });
@@ -220,10 +186,35 @@ const generateTicketPDF = async (name, firstName, email, paymentId, category) =>
             doc.fillColor('#FFFFFF');
             doc.text('QR Code non disponible', { align: 'center' });
         }
-        
-        // Pied de page
-        doc.fontSize(10).fillColor('#AAAAAA');
-        doc.text('Tropitech © 2025 - Tous droits réservés', 50, doc.page.height - 50, { align: 'center' });
+
+        // Minimalist information below the QR code
+        doc.moveDown(2); // Corrected method
+        doc.fontSize(14).fillColor('#FFFFFF');
+
+        // First name and last name in a different font (more elegant)
+        doc.font('Helvetica-Bold').fontSize(24);
+        doc.text(`${firstName.toUpperCase()} ${name.toUpperCase()}`, { align: 'center' });
+
+        doc.moveDown(4); // Corrected method
+
+        // Category in a distinctive color
+        doc.font('Helvetica').fontSize(16);
+        doc.fillColor('#FFD700'); // Gold
+        doc.text(category, { align: 'center' });
+
+        doc.moveDown(3); // Corrected method
+
+        // "TROPITECH" in large font at the bottom with custom font
+        const customFontPath = path.join(__dirname, '..', 'assets', 'Barbra-Regular.ttf');
+        if (fs.existsSync(customFontPath)) {
+            console.log(`✅ Police personnalisée trouvée: ${customFontPath}`);
+            doc.registerFont('BarbraRegular', customFontPath);
+            doc.font('BarbraRegular').fontSize(48).fillColor('#FFFFFF');
+        } else {
+            console.error(`❌ Police personnalisée non trouvée à ${customFontPath}, utilisation de la police par défaut.`);
+            doc.font('Times-Bold').fontSize(48).fillColor('#FFFFFF');
+        }
+        doc.text('TROPITECH', 50, doc.page.height - 100, { align: 'center' });
         
         // Finaliser le document
         doc.end();
