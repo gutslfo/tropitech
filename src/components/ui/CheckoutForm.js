@@ -369,7 +369,7 @@ const CheckoutForm = () => {
         <p>
           Pour toute question, veuillez nous contacter à{' '}
           <a
-            href="mailto:contact@tropitech.ch"
+            href="mailto:etaris.collective@gmail.com"
             className="text-purple-400 hover:text-purple-300"
           >
             contact@tropitech.ch
