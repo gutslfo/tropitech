@@ -1,0 +1,12 @@
+---
+services:
+  nextjs-app:
+    build: .
+    container_name: 'tropitech'
+    ports:
+      - "${PORT:-3000}:3000"
+    networks:
+      - npm-network
+    environment:
+      - PORT=3000
+    restart: unless-stopped
