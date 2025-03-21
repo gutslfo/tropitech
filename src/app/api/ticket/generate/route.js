@@ -1,6 +1,6 @@
 // src/app/api/ticket/generate/route.js
 import { NextResponse } from "next/server";
-import User from "../../../../../server/models/User";  // Corrigé
+import User from "../../../../../server/models/user.js";  // Corrigé
 import Ticket from "../../../../../server/models/ticket";  // Corrigé
 import { generateTicketPDF, sendTicketEmail } from "../../../../../server/utils/emailService";  // Corrigé
 import fs from "fs";
