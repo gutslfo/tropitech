@@ -102,15 +102,15 @@ const imgs = [
 		  </AccordionContent>
 		</AccordionItem>
 		<AccordionItem value="item-3">
-		  <AccordionTrigger className="text-xl">Est-ce facile d'accès ?</AccordionTrigger>
+		  <AccordionTrigger className="text-xl">Est-ce facile d'accès ? Y a t-il des trains toute la nuit?</AccordionTrigger>
 		  <AccordionContent className="ml-5 text-lg my-2">
-			Oui, c'est à 3min à pied de la gare de Coppet.<br/><br/>Lien Google Maps :<br/><span className="block h-2" /><Link href={"https://maps.app.goo.gl/7D6145TF1Q7NVCnB6"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Caves du Château, Rue du Greny</Link>
+			L'événement a lieu a 3 min à pied de la gare de Coppet.<br/><br/> Des trains en direction de Genève et de Lausanne circulent toute la nuit.<br/><br/>Lien Google Maps :<br/><span className="block h-2" /><Link href={"https://maps.app.goo.gl/7D6145TF1Q7NVCnB6"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Caves du Château, Rue du Greny</Link>
 		  </AccordionContent>
 		</AccordionItem>
 		<AccordionItem value="item-4">
 		  <AccordionTrigger className="text-xl">Y aura-t-il de quoi se restaurer sur place ?</AccordionTrigger>
 		  <AccordionContent className="ml-5 text-lg my-2">
-			Oui, il y'aura de quoi se restaurer
+			Oui, un bar et de la nourriture seront ouverts tout au long de la soirée.<br/><br/> Vous pourrez découvrir les burgers à base de poulet frit et snacks savoureux de Los Pollos Hermanos, parfaits pour une pause gourmande sans quitter l’ambiance.<br/><br/> Pour accompagner le tout, Mes Pépites proposera une sélection de vins soigneusement choisis par un sommelier, tandis que Nébuleuse (bière artisanale) et El Tony (maté pétillant) vous apporteront fraîcheur et énergie!
 		  </AccordionContent>
 		</AccordionItem>
 		<AccordionItem value="item-5">

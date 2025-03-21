@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import TicketAvailability from './TicketAvailability';
+import Link from 'next/link';
 
 const CheckoutForm = () => {
   const stripe = useStripe();
@@ -296,7 +297,7 @@ const CheckoutForm = () => {
               {errors.imageConsent && <p className="mt-1 text-sm text-red-500">{errors.imageConsent}</p>}
             </div>
             
-            {/* Terms checkbox */}
+            {/* Terms checkbox avec liens */}
             <div className="mt-2">
               <div className="flex items-start">
                 <input
@@ -307,7 +308,14 @@ const CheckoutForm = () => {
                   onChange={(e) => setTermsAccepted(e.target.checked)}
                 />
                 <label htmlFor="termsAccepted" className="ml-2 text-sm">
-                  J'accepte les conditions générales de vente et la politique de confidentialité.
+                  J'accepte les {' '}
+                  <Link href="/cgu" target="_blank" className="text-purple-400 hover:text-purple-300 underline">
+                    conditions générales
+                  </Link>
+                  {' '} et la {' '}
+                  <Link href="/pc" target="_blank" className="text-purple-400 hover:text-purple-300 underline">
+                    politique de confidentialité
+                  </Link>.
                 </label>
               </div>
               {errors.termsAccepted && <p className="mt-1 text-sm text-red-500">{errors.termsAccepted}</p>}
@@ -359,10 +367,10 @@ const CheckoutForm = () => {
       
       <div className="mt-6 text-center text-sm text-gray-500">
         <p>
-          Pour toute question, veuillez nous contacter à
+          Pour toute question, veuillez nous contacter à{' '}
           <a
             href="mailto:contact@tropitech.ch"
-            className="text-purple-400 hover:text-purple-300 ml-1"
+            className="text-purple-400 hover:text-purple-300"
           >
             contact@tropitech.ch
           </a>
