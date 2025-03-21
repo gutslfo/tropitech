@@ -52,7 +52,7 @@ const TicketAvailability = () => {
     return () => clearInterval(intervalId);
   }, []);
 
-  // Calculer la catégorie active en fonction des places restantes
+  // Détermine la catégorie active : la première où il reste des places.
   const getActiveCategory = () => {
     if (ticketsData.earlyBird.remaining > 0) return 'earlyBird';
     if (ticketsData.secondRelease.remaining > 0) return 'secondRelease';
@@ -62,12 +62,49 @@ const TicketAvailability = () => {
 
   const activeCategory = getActiveCategory();
   
+  // Vérifier s'il reste des places disponibles
+  const noTicketsLeft = !activeCategory;
+
+  // Pour connaître l'ordre : earlyBird -> secondRelease -> thirdRelease
+  const categoriesOrder = ['earlyBird', 'secondRelease', 'thirdRelease'];
+  const activeIndex = activeCategory
+    ? categoriesOrder.indexOf(activeCategory)
+    : -1;
+
+  // Fonction qui renvoie le texte à afficher selon la situation
+  // - "Épuisé" si on est passé à la catégorie suivante
+  // - Le nombre de places si c’est la catégorie active
+  // - Vide ("") si on n’y est pas encore
+  const getRemainingDisplay = (categoryKey, data) => {
+    // Si plus aucune place totale (tout épuisé), on affiche "Épuisé" partout
+    if (noTicketsLeft) {
+      return data.remaining > 0 ? data.remaining : 'Épuisé';
+    }
+
+    const catIndex = categoriesOrder.indexOf(categoryKey);
+    if (catIndex < activeIndex) {
+      // Catégorie déjà dépassée
+      return 'Épuisé';
+    } else if (catIndex === activeIndex) {
+      // Catégorie active
+      if (categoryKey === 'thirdRelease') {
+        // Afficher en pourcentage pour "3rd Release"
+        const percentage = ((data.remaining / data.total) * 100).toFixed(1);
+        return `${percentage}% disponibles`;
+      }
+      return data.remaining > 0 ? data.remaining : 'Épuisé';
+    } else {
+      // Catégorie pas encore atteinte => masque le nombre
+      return '';
+    }
+  };
+
   // Fonction pour formater l'affichage des catégories
   const formatCategoryName = (category) => {
     const names = {
-      earlyBird: "Early Bird",
-      secondRelease: "Second Release",
-      thirdRelease: "Third Release"
+      earlyBird: 'Early Bird',
+      secondRelease: 'Second Release',
+      thirdRelease: 'Third Release'
     };
     return names[category] || category;
   };
@@ -79,9 +116,6 @@ const TicketAvailability = () => {
   if (error) {
     return <div className="text-center py-4 text-red-500">{error}</div>;
   }
-
-  // Vérifier s'il reste des places disponibles
-  const noTicketsLeft = !activeCategory;
 
   return (
     <div className="bg-black text-white rounded-lg p-6 shadow-lg max-w-md mx-auto my-8">
@@ -95,46 +129,63 @@ const TicketAvailability = () => {
       ) : (
         <>
           <div className="space-y-4">
-            {Object.entries(ticketsData).map(([category, data]) => (
-              <div 
-                key={category} 
-                className={`p-4 rounded-md transition-all ${
-                  category === activeCategory 
-                    ? 'bg-gradient-to-r from-purple-900 to-indigo-900 border-l-4 border-yellow-400' 
-                    : 'bg-gray-800 opacity-60'
-                }`}
-              >
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">{formatCategoryName(category)}</h3>
-                  <span className="text-lg font-bold">{data.price} CHF</span>
+            {Object.entries(ticketsData).map(([category, data]) => {
+              const displayRemaining = getRemainingDisplay(category, data);
+
+              return (
+                <div
+                  key={category}
+                  className={`p-4 rounded-md transition-all ${
+                    category === activeCategory
+                      ? 'bg-gradient-to-r from-purple-900 to-indigo-900 border-l-4 border-yellow-400'
+                      : 'bg-gray-800 opacity-60'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium">{formatCategoryName(category)}</h3>
+                    <span className="text-lg font-bold">{data.price} CHF</span>
+                  </div>
+
+                  <div className="mt-2">
+                    {/* 
+                      - Si displayRemaining === "" => on n’affiche pas les "Places restantes" 
+                      - Si "Épuisé" => on affiche un <span className="text-red-400">Épuisé</span>
+                      - Sinon on affiche le nombre ou le pourcentage
+                    */}
+                    {displayRemaining === '' ? null : displayRemaining === 'Épuisé' ? (
+                      <span className="text-red-400">Épuisé</span>
+                    ) : (
+                      <div className="flex justify-between items-center">
+                        <span>Places restantes:</span>
+                        <span className="font-semibold text-yellow-300">
+                          {displayRemaining}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Barre de progression (inchangée) */}
+                  <div className="mt-2 w-full bg-gray-700 rounded-full h-2.5">
+                    <div
+                      className="bg-gradient-to-r from-emerald-400 to-green-500 h-2.5 rounded-full"
+                      style={{
+                        width: `${100 - (data.remaining / data.total) * 100}%`
+                      }}
+                    />
+                  </div>
                 </div>
-                
-                <div className="mt-2">
-                  {data.remaining > 0 ? (
-                    <div className="flex justify-between items-center">
-                      <span>Places restantes:</span>
-                      <span className="font-semibold text-yellow-300">
-                        {data.remaining}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-red-400">Épuisé</span>
-                  )}
-                </div>
-                
-                <div className="mt-2 w-full bg-gray-700 rounded-full h-2.5">
-                  <div 
-                    className="bg-gradient-to-r from-emerald-400 to-green-500 h-2.5 rounded-full" 
-                    style={{ width: `${100 - (data.remaining / data.total * 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
-          
+
           {activeCategory && (
             <div className="mt-6 text-center">
-              <p>Catégorie active: <span className="font-bold text-yellow-300">{formatCategoryName(activeCategory)}</span></p>
+              <p>
+                Catégorie active:{' '}
+                <span className="font-bold text-yellow-300">
+                  {formatCategoryName(activeCategory)}
+                </span>
+              </p>
             </div>
           )}
         </>

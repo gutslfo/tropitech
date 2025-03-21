@@ -18,14 +18,15 @@ const CheckoutForm = () => {
   const [paymentError, setPaymentError] = useState(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [clientSecret, setClientSecret] = useState('');
+  
+  // États pour la catégorie et son prix
   const [activePrice, setActivePrice] = useState(0);
   const [activeCategory, setActiveCategory] = useState('');
-  const [paymentMethods, setPaymentMethods] = useState(['card']);
   
   // État pour la validation du formulaire
   const [errors, setErrors] = useState({});
-  
-  // Récupérer le prix actif en fonction des places disponibles
+
+  // Récupérer le prix actif et la catégorie en fonction des places
   useEffect(() => {
     const fetchTicketPrices = async () => {
       try {
@@ -38,26 +39,30 @@ const CheckoutForm = () => {
         const data = await response.json();
         
         // Déterminer la catégorie active
-        let price = 45; // Prix par défaut (thirdRelease)
+        let price = 18;
         let category = 'thirdRelease';
         
         if (data.earlyBird > 0) {
-          price = 25;
+          price = 10;
           category = 'earlyBird';
         } else if (data.secondRelease > 0) {
-          price = 35;
+          price = 15;
           category = 'secondRelease';
         } else if (data.thirdRelease > 0) {
-          price = 45;
+          price = 18;
           category = 'thirdRelease';
+        } else {
+          // Toutes les places épuisées
+          price = 0;
+          category = '';
         }
-        
+
         setActivePrice(price);
         setActiveCategory(category);
       } catch (error) {
         console.error('Erreur:', error);
-        // Utiliser les valeurs par défaut
-        setActivePrice(45);
+        // Valeurs par défaut en cas d'erreur
+        setActivePrice(18);
         setActiveCategory('thirdRelease');
       }
     };
@@ -88,33 +93,26 @@ const CheckoutForm = () => {
   // Gestion de la soumission du formulaire
   const handleSubmit = async (event) => {
     event.preventDefault();
-    
-    // Réinitialiser les messages d'erreur
     setPaymentError(null);
-    
-    // Valider le formulaire
-    if (!validateForm()) {
-      return;
-    }
-    
-    // Vérifier que Stripe est chargé
+
+    // Validation
+    if (!validateForm()) return;
+
+    // Stripe chargé ?
     if (!stripe || !elements) {
       setPaymentError("La connexion à Stripe est en cours, veuillez réessayer.");
       return;
     }
     
-    // Démarrer le traitement du paiement
     setProcessingPayment(true);
     
     try {
-      // 1. Créer l'intention de paiement côté serveur
+      // 1. Créer l'intention de paiement
       const response = await fetch('/api/payment/create-payment', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: activePrice * 100, // Stripe utilise les centimes
+          amount: activePrice * 100,
           email,
           name,
           firstName,
@@ -131,14 +129,8 @@ const CheckoutForm = () => {
       const data = await response.json();
       setClientSecret(data.clientSecret);
       
-      // Si Stripe nous renvoie des méthodes de paiement disponibles
-      if (data.payment_method_types) {
-        setPaymentMethods(data.payment_method_types);
-      }
-      
-      // 2. Confirmer le paiement avec les informations de carte
+      // 2. Confirmer le paiement
       const cardElement = elements.getElement(CardElement);
-      
       const { error, paymentIntent } = await stripe.confirmCardPayment(data.clientSecret, {
         payment_method: {
           card: cardElement,
@@ -149,17 +141,14 @@ const CheckoutForm = () => {
         },
       });
       
-      if (error) {
-        throw new Error(error.message || 'Erreur lors du paiement');
-      }
+      if (error) throw new Error(error.message || 'Erreur lors du paiement');
       
-      // Paiement réussi
+      // Paiement réussi ?
       if (paymentIntent.status === 'succeeded') {
         setPaymentSuccess(true);
-        // Rediriger vers la page de succès
         window.location.href = `/success?paymentId=${paymentIntent.id}`;
       } else {
-        throw new Error('Le statut du paiement est: ' + paymentIntent.status);
+        throw new Error(`Le statut du paiement est: ${paymentIntent.status}`);
       }
     } catch (error) {
       console.error('Erreur de paiement:', error);
@@ -169,7 +158,7 @@ const CheckoutForm = () => {
     }
   };
 
-  // En cas de places épuisées
+  // Aucune place ?
   if (activePrice === 0) {
     return (
       <div className="text-center p-8 bg-red-800 rounded-lg shadow-lg">
@@ -179,7 +168,7 @@ const CheckoutForm = () => {
     );
   }
 
-  // Afficher le formulaire de succès si le paiement est réussi
+  // Succès du paiement
   if (paymentSuccess) {
     return (
       <div className="text-center p-8 bg-green-800 rounded-lg shadow-lg">
@@ -191,17 +180,27 @@ const CheckoutForm = () => {
 
   return (
     <div className="max-w-3xl mx-auto p-4">
-      <TicketAvailability />
-      
+      {/*
+        TicketAvailability n'affiche plus que la catégorie sélectionnée,
+        grâce à la prop activeCategory
+      */}
+      <TicketAvailability activeCategory={activeCategory} />
+
       <div className="bg-black text-white rounded-lg p-6 shadow-lg mt-8">
         <h2 className="text-2xl font-bold mb-6 text-center">Réservation de billet</h2>
         
         <div className="bg-purple-900 p-4 rounded-md mb-6">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-medium">Prix actuel:</h3>
+            <h3 className="text-lg font-medium">
+              {activeCategory === 'earlyBird' 
+                ? 'Early Bird' 
+                : activeCategory === 'secondRelease' 
+                  ? 'Second Release' 
+                  : 'Third Release'
+              }
+            </h3>
             <span className="text-2xl font-bold">{activePrice} CHF</span>
           </div>
-          <p className="text-sm mt-2">Catégorie: {activeCategory === 'earlyBird' ? 'Early Bird' : activeCategory === 'secondRelease' ? 'Second Release' : 'Third Release'}</p>
         </div>
         
         {paymentError && (
@@ -219,7 +218,9 @@ const CheckoutForm = () => {
               <input
                 type="text"
                 id="name"
-                className={`w-full px-4 py-2 rounded-md bg-gray-800 text-white border ${errors.name ? 'border-red-500' : 'border-gray-600'}`}
+                className={`w-full px-4 py-2 rounded-md bg-gray-800 text-white border ${
+                  errors.name ? 'border-red-500' : 'border-gray-600'
+                }`}
                 placeholder="Votre nom"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -233,7 +234,9 @@ const CheckoutForm = () => {
               <input
                 type="text"
                 id="firstName"
-                className={`w-full px-4 py-2 rounded-md bg-gray-800 text-white border ${errors.firstName ? 'border-red-500' : 'border-gray-600'}`}
+                className={`w-full px-4 py-2 rounded-md bg-gray-800 text-white border ${
+                  errors.firstName ? 'border-red-500' : 'border-gray-600'
+                }`}
                 placeholder="Votre prénom"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
@@ -247,7 +250,9 @@ const CheckoutForm = () => {
               <input
                 type="email"
                 id="email"
-                className={`w-full px-4 py-2 rounded-md bg-gray-800 text-white border ${errors.email ? 'border-red-500' : 'border-gray-600'}`}
+                className={`w-full px-4 py-2 rounded-md bg-gray-800 text-white border ${
+                  errors.email ? 'border-red-500' : 'border-gray-600'
+                }`}
                 placeholder="Votre email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -265,20 +270,13 @@ const CheckoutForm = () => {
                       base: {
                         fontSize: '16px',
                         color: '#fff',
-                        '::placeholder': {
-                          color: '#aab7c4',
-                        },
+                        '::placeholder': { color: '#aab7c4' },
                       },
-                      invalid: {
-                        color: '#fa755a',
-                      },
+                      invalid: { color: '#fa755a' },
                     },
                   }}
                 />
               </div>
-              {paymentMethods.includes('twint') && (
-                <p className="mt-2 text-sm text-gray-300">TWINT est également disponible comme option de paiement.</p>
-              )}
             </div>
             
             {/* Consent checkbox */}
@@ -324,9 +322,29 @@ const CheckoutForm = () => {
               >
                 {processingPayment ? (
                   <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none" viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 
+                          0 0 5.373 0 12h4zm2 
+                          5.291A7.962 
+                          7.962 0 014 12H0c0 
+                          3.042 1.135 5.824 3 
+                          7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Traitement en cours...
                   </span>
@@ -340,7 +358,15 @@ const CheckoutForm = () => {
       </div>
       
       <div className="mt-6 text-center text-sm text-gray-500">
-        <p>Pour toute question, veuillez nous contacter à <a href="mailto:contact@tropitech.ch" className="text-purple-400 hover:text-purple-300">contact@tropitech.ch</a></p>
+        <p>
+          Pour toute question, veuillez nous contacter à
+          <a
+            href="mailto:contact@tropitech.ch"
+            className="text-purple-400 hover:text-purple-300 ml-1"
+          >
+            contact@tropitech.ch
+          </a>
+        </p>
       </div>
     </div>
   );
