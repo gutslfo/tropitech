@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:18.17-alpine AS builder
+FROM node:18-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -16,7 +16,7 @@ COPY .env .env
 RUN npm install && npm install express mongoose cors dotenv helmet morgan body-parser nodemailer qrcode pdfkit express-rate-limit module-alias canvas && npm run build
 
 # Stage 2: Production Image
-FROM node:18.17-alpine
+FROM node:18-alpine
 
 # Set working directory
 WORKDIR /app
@@ -44,5 +44,7 @@ USER appuser
 EXPOSE ${PORT}
 
 # Start the application
-CMD ["npm", "start"]
+# CMD ["npm", "start"]
+CMD ["sh", "-c", "npm run server && npm run dev"]
+
 
