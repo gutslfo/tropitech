@@ -2,8 +2,7 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 const QRCode = require('qrcode');
-const { createCanvas, loadImage } = require('canvas');
-
+const { createCanvas, loadImage, registerFont } = require('canvas');
 
 /**
  * Crée un QR Code stylisé avec le nom de l'utilisateur
@@ -80,8 +79,8 @@ const createStylishQRCode = async (firstName, lastName, paymentId, outputPath) =
         // Marque Tropitech en bas avec une police différente, plus distincte
         const customFontPath = path.join(__dirname, '..', 'assets', 'Barbra-Regular.ttf');  
         if (fs.existsSync(customFontPath)) {
-            const barbraFont = new Canvas.Font('Barbra', customFontPath); // Charger la police
-            ctx.addFont(barbraFont); // Ajouter la police au canvas
+            // Correction: Utilisation de registerFont au lieu de new Canvas.Font
+            registerFont(customFontPath, { family: 'Barbra' });
             ctx.font = '200px Barbra'; // Utiliser la police Barbra avec une taille de 200px
         } else {
             console.error(`❌ Police Barbra non trouvée à ${customFontPath}, utilisation de la police par défaut.`);
@@ -159,7 +158,6 @@ const generateTicketPDF = async (name, firstName, email, paymentId, category) =>
             if (fs.existsSync(logoPath)) {
                 const logoWidth = 500;
                 const logoX = (doc.page.width - logoWidth) / 2;
-                const logoY = 20;
                 doc.image(logoPath, logoX, 50, {
                     width: logoWidth
                 });
@@ -171,13 +169,13 @@ const generateTicketPDF = async (name, firstName, email, paymentId, category) =>
 
         // Add the QR Code (central element)
         try {
-            const qrImage = doc.openImage(qrCodePath);
             const qrWidth = 150;
-            const qrHeight = 150
+            const qrHeight = 150;
             const qrX = (doc.page.width - qrWidth) / 2;
-            const qrY = (height - qrHeight) / 2;
+            // Correction: utilisation de doc.page.height au lieu de height (variable non définie)
+            const qrY = 150; // Position fixe au lieu de calculée
 
-            doc.image(qrCodePath, qrX, 150, {
+            doc.image(qrCodePath, qrX, qrY, {
                 width: qrWidth,
                 height: qrHeight
             });
@@ -188,21 +186,21 @@ const generateTicketPDF = async (name, firstName, email, paymentId, category) =>
         }
 
         // Minimalist information below the QR code
-        doc.moveDown(2); // Corrected method
+        doc.moveDown(2);
         doc.fontSize(14).fillColor('#FFFFFF');
 
         // First name and last name in a different font (more elegant)
         doc.font('Helvetica-Bold').fontSize(24);
         doc.text(`${firstName.toUpperCase()} ${name.toUpperCase()}`, { align: 'center' });
 
-        doc.moveDown(4); // Corrected method
+        doc.moveDown(4);
 
         // Category in a distinctive color
         doc.font('Helvetica').fontSize(16);
         doc.fillColor('#FFD700'); // Gold
         doc.text(category, { align: 'center' });
 
-        doc.moveDown(3); // Corrected method
+        doc.moveDown(3);
 
         // "TROPITECH" in large font at the bottom with custom font
         const customFontPath = path.join(__dirname, '..', 'assets', 'Barbra-Regular.ttf');

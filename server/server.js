@@ -1,11 +1,14 @@
 // server/server.js
 require("dotenv").config();
 const express = require("express");
-const mongoose = require("mongoose");
 const cors = require("cors");
 const morgan = require("morgan");
 const fs = require("fs");
 const path = require("path");
+const helmet = require("helmet");
+
+// Import de l'utilitaire de connexion DB
+const dbConnect = require("./utils/dbConnect");
 
 // Import des routes
 const ticketRoutes = require("./routes/ticketRoutes");
@@ -21,14 +24,19 @@ const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 if (missingEnvVars.length > 0) {
     console.error(`❌ Variables d'environnement manquantes: ${missingEnvVars.join(', ')}`);
     console.error('Veuillez configurer ces variables dans votre fichier .env');
+    process.exit(1); // Exit with error code
 } else {
     console.log("✅ Variables d'environnement vérifiées");
 }
 
+// Sécurité avancée avec helmet
+app.use(helmet());
+
 // Créer les dossiers nécessaires s'ils n'existent pas
 const dirs = [
     path.join(__dirname, 'tickets'),
-    path.join(__dirname, 'qrcodes')
+    path.join(__dirname, 'qrcodes'),
+    path.join(__dirname, 'assets')
 ];
 
 dirs.forEach(dir => {
@@ -44,8 +52,14 @@ app.use((req, res, next) => {
     next();
 });
 
-// Activer CORS
-app.use(cors());
+// Activer CORS avec des options sécurisées
+app.use(cors({
+    origin: process.env.NODE_ENV === 'production' 
+        ? ['https://tropitech.ch', 'https://www.tropitech.ch'] 
+        : true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'stripe-signature']
+}));
 
 // Logger HTTP avec Morgan
 app.use(morgan('dev'));
@@ -77,9 +91,10 @@ app.use((err, req, res, next) => {
 });
 
 // Connexion à MongoDB et démarrage du serveur
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => {
-        console.log("✅ Connecté à MongoDB");
+const startServer = async () => {
+    try {
+        // Utiliser l'utilitaire de connexion DB
+        await dbConnect();
         
         // Démarrage du serveur après connexion à MongoDB
         app.listen(PORT, () => {
@@ -87,7 +102,10 @@ mongoose.connect(process.env.MONGO_URI)
             console.log(`ℹ️ Webhooks Stripe disponibles sur http://localhost:${PORT}/api/payment/webhook`);
             console.log(`ℹ️ Pour utiliser ngrok: npx ngrok http ${PORT}`);
         });
-    })
-    .catch(err => {
-        console.error("❌ Erreur de connexion à MongoDB:", err);
-    });
+    } catch (err) {
+        console.error("❌ Erreur de démarrage du serveur:", err);
+        process.exit(1); // Exit with error code
+    }
+};
+
+startServer();

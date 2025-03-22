@@ -1,6 +1,5 @@
 // server/utils/emailService.js
 const nodemailer = require("nodemailer");
-const { generateTicketPDF } = require("./generateTicket");
 const fs = require("fs");
 const path = require("path");
 
@@ -25,15 +24,22 @@ const sendTicketEmail = async (email, name, firstName, ticketData) => {
             throw new Error(`Fichier PDF non trouvé: ${ticketData?.filePath}`);
         }
 
-        // Créer le transporteur avec journalisation détaillée
+        // Créer le transporteur avec configuration sécurisée
         const transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS,
             },
-            debug: true, // Active la journalisation détaillée
-            logger: true  // Active le logger pour voir les détails
+            // En production, on désactive le mode debug
+            debug: process.env.NODE_ENV !== 'production',
+            logger: process.env.NODE_ENV !== 'production',
+            // Activer les options de sécurité
+            secure: true,
+            tls: {
+                // Demander un certificat client
+                rejectUnauthorized: true
+            }
         });
 
         // Vérifier la connexion au service d'email
@@ -41,7 +47,10 @@ const sendTicketEmail = async (email, name, firstName, ticketData) => {
         console.log(`✅ Connexion au service d'email vérifiée`);
 
         const mailOptions = {
-            from: process.env.EMAIL_USER,
+            from: {
+                name: 'Tropitech Event',
+                address: process.env.EMAIL_USER
+            },
             to: email,
             subject: "Votre billet pour Tropitech",
             text: `Bonjour ${firstName} ${name},\n\nVoici votre billet pour l'événement Tropitech.\n\nDate: 19 Avril 2025\nLieu: Caves du Château, Rue du Greny, Coppet\n\nMerci et à bientôt !\nL'équipe Tropitech`,
@@ -65,10 +74,33 @@ const sendTicketEmail = async (email, name, firstName, ticketData) => {
             ],
         };
 
-        // Envoyer l'email
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Email envoyé à ${email}, ID: ${info.messageId}`);
-        return info;
+        // Implémenter un mécanisme de retry
+        let retries = 3;
+        let success = false;
+        let lastError = null;
+
+        while (retries > 0 && !success) {
+            try {
+                // Envoyer l'email
+                const info = await transporter.sendMail(mailOptions);
+                console.log(`✅ Email envoyé à ${email}, ID: ${info.messageId}`);
+                success = true;
+                return info;
+            } catch (err) {
+                lastError = err;
+                console.error(`⚠️ Erreur envoi email (tentatives restantes: ${retries-1}):`, err);
+                retries--;
+                
+                // Attendre 2 secondes avant de réessayer
+                if (retries > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            }
+        }
+
+        if (!success) {
+            throw new Error(`Échec de l'envoi d'email après 3 tentatives: ${lastError?.message}`);
+        }
     } catch (error) {
         console.error(`❌ Erreur lors de l'envoi du mail:`, error);
         console.error(error.stack);

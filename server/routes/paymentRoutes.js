@@ -1,20 +1,18 @@
 // server/routes/paymentRoutes.js
 require("dotenv").config();
-
-// Affiche la clé Stripe utilisée
-console.log("🔍 Clé Stripe utilisée :", process.env.STRIPE_SECRET_KEY);
-
 const express = require("express");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const QRCode = require("qrcode");
+const path = require("path");
+const fs = require("fs");
+const router = express.Router();
+
+// Import du modèle de connexion DB unifié
+const dbConnect = require("../utils/dbConnect");
 const User = require("../models/User");
 const Ticket = require("../models/ticket");
 const { sendTicketEmail } = require("../utils/emailService");
 const { generateTicketPDF } = require("../utils/generateTicket");
-const fs = require("fs");
-const path = require("path");
-
-const router = express.Router();
 
 console.log("✅ paymentRoutes chargé");
 
@@ -86,10 +84,21 @@ router.get("/test-email", async (req, res) => {
 // ----------------------------------------------------
 router.post("/create-payment", async (req, res) => {
   try {
+    // Connecter à la DB si pas déjà connecté
+    await dbConnect();
+    
     console.log("✅ POST /api/payment/create-payment appelé !");
     console.log("Body reçu:", req.body);
 
     const { amount, email, name, firstName, imageConsent } = req.body;
+
+    // Validation des données d'entrée
+    if (!amount || !email || !name || !firstName) {
+      return res.status(400).json({ 
+        error: "Données incomplètes",
+        details: "Tous les champs (amount, email, name, firstName) sont requis" 
+      });
+    }
 
     // Vérification de base
     if (!imageConsent) {
@@ -102,6 +111,11 @@ router.post("/create-payment", async (req, res) => {
       amount,
       currency: "chf",
       receipt_email: email,
+      metadata: {
+        customer_name: name,
+        customer_firstName: firstName,
+        customer_email: email
+      }
     });
     console.log("✅ PaymentIntent créé :", paymentIntent.id);
 
@@ -122,7 +136,10 @@ router.post("/create-payment", async (req, res) => {
     return res.json({ clientSecret: paymentIntent.client_secret });
   } catch (error) {
     console.error("❌ Erreur création paiement:", error);
-    return res.status(500).json({ error: "Erreur lors de la création du paiement" });
+    return res.status(500).json({ 
+      error: "Erreur lors de la création du paiement",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -140,28 +157,31 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
     const sig = req.headers['stripe-signature'];
     let event;
 
-    // Vérifier la signature si un secret est configuré
-    if (process.env.STRIPE_WEBHOOK_SECRET && sig) {
-      try {
+    // SECURITY FIX: En production, on exige toujours la vérification de la signature
+    if (process.env.NODE_ENV === 'production' && (!process.env.STRIPE_WEBHOOK_SECRET || !sig)) {
+      console.error('❌ Webhook error: Signature verification required in production');
+      return res.status(403).send('Webhook signature verification failed');
+    }
+
+    // Vérifier la signature
+    try {
+      if (process.env.STRIPE_WEBHOOK_SECRET && sig) {
         event = stripe.webhooks.constructEvent(
           payload, 
           sig, 
           process.env.STRIPE_WEBHOOK_SECRET
         );
         console.log(`✅ Signature Stripe vérifiée`);
-      } catch (signatureError) {
-        console.error(`❌ Erreur de signature webhook: ${signatureError.message}`);
-        return res.status(400).send(`Webhook Signature Error: ${signatureError.message}`);
-      }
-    } else {
-      // Sinon, juste parser le JSON (moins sécurisé, à utiliser uniquement en développement)
-      try {
+      } else if (process.env.NODE_ENV !== 'production') {
+        // En développement uniquement, on peut accepter sans signature
         event = JSON.parse(payload.toString());
         console.log(`⚠️ Webhook sans vérification de signature (développement uniquement)`);
-      } catch (parseError) {
-        console.error(`❌ Erreur de parsing du payload: ${parseError.message}`);
-        return res.status(400).send(`Webhook Parsing Error: ${parseError.message}`);
+      } else {
+        throw new Error('Impossible de vérifier la signature du webhook');
       }
+    } catch (signatureError) {
+      console.error(`❌ Erreur de signature webhook: ${signatureError.message}`);
+      return res.status(400).send(`Webhook Signature Error: ${signatureError.message}`);
     }
 
     console.log(`✅ Type d'événement: ${event.type}`);
@@ -196,6 +216,9 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
   console.log(`✅ Paiement réussi! ID: ${paymentIntent.id}`);
 
   try {
+    // Connecter à la DB si pas déjà connecté
+    await dbConnect();
+    
     // Vérifier si un ticket existe déjà
     const existingTicket = await Ticket.findOne({ paymentId: paymentIntent.id });
     if (existingTicket) {
@@ -206,22 +229,32 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
     // Retrouver l'utilisateur en base
     let user = await User.findOne({ paymentId: paymentIntent.id });
     
-    // Si aucun utilisateur n'est trouvé, créer un utilisateur test pour le développement
-    if (!user) {
-      console.log(`⚠️ Aucun utilisateur trouvé pour le paymentId=${paymentIntent.id}. Création d'un utilisateur de test...`);
+    // Si aucun utilisateur n'est trouvé, essayer de le créer à partir des métadonnées
+    if (!user && paymentIntent.metadata) {
+      console.log(`⚠️ Aucun utilisateur trouvé pour le paymentId=${paymentIntent.id}. Tentative de récupération depuis les métadonnées...`);
       
-      user = new User({
-        email: paymentIntent.receipt_email || "test@example.com",
-        name: "Test",
-        firstName: "User",
-        paymentId: paymentIntent.id,
-        imageConsent: true
-      });
+      const { customer_name, customer_firstName, customer_email } = paymentIntent.metadata;
       
-      await user.save();
-      console.log(`✅ Utilisateur de test créé: ${user.email}`);
-    } else {
+      if (customer_email) {
+        user = new User({
+          email: customer_email || paymentIntent.receipt_email || "no-email@example.com",
+          name: customer_name || "Utilisateur",
+          firstName: customer_firstName || "Anonyme",
+          paymentId: paymentIntent.id,
+          imageConsent: true // Par défaut
+        });
+        
+        await user.save();
+        console.log(`✅ Utilisateur créé depuis les métadonnées: ${user.email}`);
+      } else {
+        console.log(`⚠️ Impossible de créer l'utilisateur: métadonnées insuffisantes`);
+        return;
+      }
+    } else if (user) {
       console.log(`✅ Utilisateur trouvé: ${user.email}`);
+    } else {
+      console.log(`❌ Aucun utilisateur trouvé et impossible d'en créer un nouveau`);
+      return;
     }
 
     // Déterminer la catégorie en fonction du nombre de tickets vendus
@@ -290,6 +323,9 @@ async function handlePaymentIntentFailed(paymentIntent) {
   console.log(`⚠️ Paiement échoué! ID: ${paymentIntent.id}`);
 
   try {
+    // Connecter à la DB si pas déjà connecté
+    await dbConnect();
+    
     const user = await User.findOne({ paymentId: paymentIntent.id });
     if (!user) {
       console.error(`❌ Utilisateur non trouvé pour le paiement échoué: ${paymentIntent.id}`);
@@ -304,5 +340,3 @@ async function handlePaymentIntentFailed(paymentIntent) {
     throw error; // Propager l'erreur pour le traitement global
   }
 }
-
-module.exports = router;

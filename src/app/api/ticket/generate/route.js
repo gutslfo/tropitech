@@ -1,14 +1,54 @@
 // src/app/api/ticket/generate/route.js
 import { NextResponse } from "next/server";
-import User from "../../../../../server/models/user.js";  // Corrigé
-import Ticket from "../../../../../server/models/ticket";  // Corrigé
-import { generateTicketPDF, sendTicketEmail } from "../../../../../server/utils/emailService";  // Corrigé
+import mongoose from "mongoose";
 import fs from "fs";
+
+// Import models with correct paths
+// Corrected paths and imports for server models
+let User, Ticket, generateTicketPDF, sendTicketEmail;
+
+// Initialize mongoose models dynamically to avoid direct import path issues
+const initModels = async () => {
+    if (!mongoose.connection || mongoose.connection.readyState !== 1) {
+        try {
+            if (!process.env.MONGO_URI) {
+                throw new Error("MONGO_URI is not defined in environment variables");
+            }
+            await mongoose.connect(process.env.MONGO_URI);
+            console.log("✅ Connected to MongoDB from ticket/generate API");
+        } catch (error) {
+            console.error("❌ MongoDB connection error:", error);
+            throw error;
+        }
+    }
+
+    // Import models dynamically - this avoids path issues
+    try {
+        // Dynamic imports have better compatibility with Next.js production builds
+        const UserModel = await import("../../../../../server/models/User");
+        const TicketModel = await import("../../../../../server/models/ticket");
+        const TicketUtils = await import("../../../../../server/utils/generateTicket");
+        const EmailUtils = await import("../../../../../server/utils/emailService");
+        
+        User = UserModel.default;
+        Ticket = TicketModel.default;
+        generateTicketPDF = TicketUtils.generateTicketPDF;
+        sendTicketEmail = EmailUtils.sendTicketEmail;
+
+        console.log("✅ Models and utilities loaded successfully");
+    } catch (error) {
+        console.error("❌ Error loading models or utilities:", error);
+        throw error;
+    }
+};
 
 export async function GET(req) {
     console.log("🔥 API `/api/ticket/generate` appelée !");
 
     try {
+        // Initialize models first
+        await initModels();
+
         // Vérification si Next.js capte bien la requête
         if (!req.url) {
             console.log("❌ ERREUR: `req.url` est vide !");
@@ -54,7 +94,7 @@ export async function GET(req) {
         }
 
         // Générer le billet PDF
-        const { filePath, qrCodePath, qrCodeURL } = await generateTicketPDF(
+        const ticketData = await generateTicketPDF(
             user.name,
             user.firstName,
             user.email,
@@ -62,7 +102,7 @@ export async function GET(req) {
             category
         );
 
-        console.log("✅ PDF généré :", filePath);
+        console.log("✅ PDF généré :", ticketData.filePath);
         
         // Si le ticket n'existe pas encore, le créer maintenant
         if (!existingTicket) {
@@ -78,11 +118,11 @@ export async function GET(req) {
             console.log("✅ Nouveau ticket enregistré en base de données");
             
             // Envoyer l'email avec le billet
-            await sendTicketEmail(user.email, user.name, user.firstName, { filePath, qrCodePath, qrCodeURL });
+            await sendTicketEmail(user.email, user.name, user.firstName, ticketData);
         }
 
         // Lire le fichier PDF et l'envoyer
-        const fileBuffer = fs.readFileSync(filePath);
+        const fileBuffer = fs.readFileSync(ticketData.filePath);
 
         return new NextResponse(fileBuffer, {
             status: 200,
@@ -94,6 +134,9 @@ export async function GET(req) {
 
     } catch (error) {
         console.error("❌ ERREUR:", error);
-        return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+        return NextResponse.json({ 
+            error: "Erreur interne du serveur", 
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        }, { status: 500 });
     }
 }
