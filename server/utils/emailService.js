@@ -1,6 +1,7 @@
 // server/utils/emailService.js
 const nodemailer = require("nodemailer");
 const fs = require("fs");
+const path = require("path");
 
 /**
  * Envoie un email avec le billet en pièce jointe
@@ -19,26 +20,54 @@ const sendTicketEmail = async (email, name, firstName, ticketData) => {
         }
 
         // Vérifier que ticketData contient les informations nécessaires
-        if (!ticketData || !ticketData.filePath || !fs.existsSync(ticketData.filePath)) {
-            throw new Error(`Fichier PDF non trouvé: ${ticketData?.filePath}`);
+        if (!ticketData || !ticketData.filePath) {
+            throw new Error(`Données de ticket invalides: ${JSON.stringify(ticketData)}`);
         }
 
-        // Créer le transporteur avec configuration sécurisée
-        const transporter = nodemailer.createTransport({
-            host: "smtp.gmail.com",            // Préciser explicitement le serveur SMTP
-            port: 465,                         // Port SMTP sécurisé
-            secure: true,                      // Utiliser SSL/TLS
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,  // Utiliser un mot de passe d'application pour Gmail
-            },
-            debug: process.env.NODE_ENV !== 'production',
-            logger: process.env.NODE_ENV !== 'production',
-        });
+        // Vérifier que le fichier PDF existe
+        if (!fs.existsSync(ticketData.filePath)) {
+            throw new Error(`Fichier PDF non trouvé: ${ticketData.filePath}`);
+        }
 
-        // Vérifier la connexion au service d'email
-        await transporter.verify();
-        console.log(`✅ Connexion au service d'email vérifiée`);
+        console.log(`✅ Fichier PDF vérifié: ${ticketData.filePath} (${fs.statSync(ticketData.filePath).size} bytes)`);
+
+        let transporter;
+        try {
+            // Tenter d'utiliser la configuration sécurisée Gmail
+            transporter = nodemailer.createTransport({
+                host: "smtp.gmail.com",            // Préciser explicitement le serveur SMTP
+                port: 465,                         // Port SMTP sécurisé
+                secure: true,                      // Utiliser SSL/TLS
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS,  // Utiliser un mot de passe d'application pour Gmail
+                },
+                debug: process.env.NODE_ENV !== 'production',
+                logger: process.env.NODE_ENV !== 'production',
+            });
+
+            // Vérifier la connexion au service d'email
+            await transporter.verify();
+            console.log(`✅ Connexion au service d'email vérifiée (configuration Gmail)`);
+        } catch (gmailError) {
+            console.warn(`⚠️ Échec de la configuration Gmail, tentative de configuration générique: ${gmailError.message}`);
+            
+            // Si la première configuration échoue, essayer avec une configuration plus générique
+            transporter = nodemailer.createTransport({
+                service: "gmail",
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS,
+                },
+            });
+            
+            // Vérifier la connexion au service d'email
+            await transporter.verify();
+            console.log(`✅ Connexion au service d'email vérifiée (configuration générique)`);
+        }
+
+        // Nom du fichier pour la pièce jointe (sans le chemin complet)
+        const attachmentFilename = `ticket_${firstName}_${name}.pdf`;
 
         // Construire les options de l'email
         const mailOptions = {
@@ -80,17 +109,34 @@ const sendTicketEmail = async (email, name, firstName, ticketData) => {
             `,
             attachments: [
                 {
-                    filename: `ticket_${firstName}_${name}.pdf`,
+                    filename: attachmentFilename,
                     path: ticketData.filePath,
                     contentType: 'application/pdf'
                 },
             ],
         };
 
-        // Envoyer l'email
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Email envoyé à ${email}, ID: ${info.messageId}`);
-        return info;
+        // Tenter d'envoyer l'email
+        try {
+            const info = await transporter.sendMail(mailOptions);
+            console.log(`✅ Email envoyé à ${email}, ID: ${info.messageId}`);
+            return info;
+        } catch (sendError) {
+            console.error(`❌ Erreur lors de l'envoi de l'email:`, sendError);
+            
+            // Si l'envoi échoue, essayer à nouveau avec une configuration alternative
+            if (sendError.message.includes('attachments')) {
+                console.log(`⚠️ Tentative d'envoi sans pièce jointe...`);
+                delete mailOptions.attachments;
+                mailOptions.html += `<p style="color: red; font-weight: bold;">Avertissement: en raison d'un problème technique, votre billet n'a pas pu être joint à cet email. Veuillez contacter le support à etaris.collective@gmail.com.</p>`;
+                
+                const retryInfo = await transporter.sendMail(mailOptions);
+                console.log(`✅ Email envoyé sans pièce jointe à ${email}, ID: ${retryInfo.messageId}`);
+                return retryInfo;
+            } else {
+                throw sendError; // Si ce n'est pas un problème de pièce jointe, propager l'erreur
+            }
+        }
     } catch (error) {
         console.error(`❌ Erreur lors de l'envoi du mail:`, error);
         throw error; // Propager l'erreur pour la traiter à un niveau supérieur

@@ -15,6 +15,13 @@ const { createCanvas, loadImage, registerFont } = require('canvas');
  */
 const createStylishQRCode = async (firstName, lastName, paymentId, outputPath) => {
     try {
+        // Vérifier que le dossier parent existe
+        const outputDir = path.dirname(outputPath);
+        if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
+            console.log(`✅ Dossier créé pour QR code: ${outputDir}`);
+        }
+
         // Données pour le QR code
         const qrData = `https://tropitech.ch/ticket/${paymentId}`;
         
@@ -49,17 +56,49 @@ const createStylishQRCode = async (firstName, lastName, paymentId, outputPath) =
         // Dessiner le QR code sur le canvas principal
         ctx.drawImage(qrCanvas, qrX, qrY);
         
+        // Chemin du logo
+        const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
+        
         try {
-            // Charger et ajouter le logo au centre du QR code
-            const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
+            // Vérifier si le logo existe
             if (fs.existsSync(logoPath)) {
+                console.log(`✅ Logo trouvé: ${logoPath}`);
                 const logo = await loadImage(logoPath);
                 const logoSize = 200;
                 const logoX = (width - logoSize) / 2;
                 const logoY = 10;
                 ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
             } else {
-                console.log(`⚠️ Logo non trouvé à ${logoPath}, QR code généré sans logo`);
+                // Si le logo n'existe pas, créer un logo de substitution
+                console.log(`⚠️ Logo non trouvé à ${logoPath}, création d'un logo de substitution`);
+                
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 40px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('TROPITECH', width / 2, 100);
+                
+                // Créer le dossier assets s'il n'existe pas
+                const assetsDir = path.join(__dirname, '..', 'assets');
+                if (!fs.existsSync(assetsDir)) {
+                    fs.mkdirSync(assetsDir, { recursive: true });
+                    console.log(`✅ Dossier assets créé: ${assetsDir}`);
+                }
+                
+                // Créer un logo de substitution simple
+                const fallbackCanvas = createCanvas(200, 200);
+                const fallbackCtx = fallbackCanvas.getContext('2d');
+                fallbackCtx.fillStyle = '#333333';
+                fallbackCtx.fillRect(0, 0, 200, 200);
+                fallbackCtx.fillStyle = '#FFFFFF';
+                fallbackCtx.font = 'bold 30px Arial';
+                fallbackCtx.textAlign = 'center';
+                fallbackCtx.fillText('TROPI', 100, 80);
+                fallbackCtx.fillText('TECH', 100, 120);
+                
+                // Sauvegarder le logo de substitution
+                const fallbackBuffer = fallbackCanvas.toBuffer('image/png');
+                fs.writeFileSync(logoPath, fallbackBuffer);
+                console.log(`✅ Logo de substitution créé et sauvegardé à ${logoPath}`);
             }
         } catch (logoError) {
             console.error(`⚠️ Erreur lors du chargement du logo:`, logoError);
@@ -78,15 +117,23 @@ const createStylishQRCode = async (firstName, lastName, paymentId, outputPath) =
         ctx.fillText(lastName.toUpperCase(), width / 2, qrY + 500 + 80);
         
         // Marque Tropitech en bas avec une police différente, plus distincte
-        const customFontPath = path.join(__dirname, '..', 'assets', 'Barbra-Regular.ttf');  
-        if (fs.existsSync(customFontPath)) {
-            // Utilisation de registerFont au lieu de new Canvas.Font
-            registerFont(customFontPath, { family: 'Barbra' });
-            ctx.font = '200px Barbra'; // Utiliser la police Barbra avec une taille de 200px
-        } else {
-            console.error(`❌ Police Barbra non trouvée à ${customFontPath}, utilisation de la police par défaut.`);
-            ctx.font = 'bold 200px Impact, fantasy'; // Fallback si la police Barbra est introuvable
+        const customFontPath = path.join(__dirname, '..', 'assets', 'Barbra-Regular.ttf');
+        
+        try {  
+            if (fs.existsSync(customFontPath)) {
+                console.log(`✅ Police Barbra trouvée: ${customFontPath}`);
+                // Utilisation de registerFont au lieu de new Canvas.Font
+                registerFont(customFontPath, { family: 'Barbra' });
+                ctx.font = '200px Barbra'; // Utiliser la police Barbra avec une taille de 200px
+            } else {
+                console.log(`⚠️ Police Barbra non trouvée à ${customFontPath}, utilisation de la police par défaut.`);
+                ctx.font = 'bold 200px Impact, fantasy'; // Fallback si la police Barbra est introuvable
+            }
+        } catch (fontError) {
+            console.error(`⚠️ Erreur lors du chargement de la police:`, fontError);
+            ctx.font = 'bold 200px Impact, fantasy'; // Fallback en cas d'erreur
         }
+        
         ctx.fillText('TROPITECH', width / 2, height - 80);  
         
         // Enregistrer l'image
@@ -126,14 +173,17 @@ const generateTicketPDF = async (name, firstName, email, paymentId, category) =>
             }
         });
         
+        // Générer un nom de fichier sécurisé
+        const safeFileName = `${firstName}_${name}_${Date.now()}`.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+        
         // Chemin pour le QR code stylisé
-        const qrCodePath = path.join(qrDir, `qrcode_${paymentId}.png`);
+        const qrCodePath = path.join(qrDir, `qrcode_${safeFileName}.png`);
         
         // Générer le QR code stylisé
         await createStylishQRCode(firstName, name, paymentId, qrCodePath);
         
         // Chemin pour le fichier PDF
-        const filePath = path.join(ticketsDir, `ticket_${firstName}_${name}.pdf`);
+        const filePath = path.join(ticketsDir, `ticket_${safeFileName}.pdf`);
         
         // Créer un nouveau document PDF avec design minimaliste
         const doc = new PDFDocument({
@@ -163,6 +213,8 @@ const generateTicketPDF = async (name, firstName, email, paymentId, category) =>
                     width: logoWidth
                 });
                 doc.moveDown(2);
+            } else {
+                console.log(`⚠️ Logo non trouvé pour le PDF à ${logoPath}, création sans logo`);
             }
         } catch (logoError) {
             console.error(`❌ Erreur d'ajout du logo:`, logoError);
@@ -176,10 +228,15 @@ const generateTicketPDF = async (name, firstName, email, paymentId, category) =>
             const qrX = (doc.page.width - qrWidth) / 2;
             const qrY = 150; // Position fixe
 
-            doc.image(qrCodePath, qrX, qrY, {
-                width: qrWidth,
-                height: qrHeight
-            });
+            if (fs.existsSync(qrCodePath)) {
+                console.log(`✅ QR Code trouvé: ${qrCodePath}`);
+                doc.image(qrCodePath, qrX, qrY, {
+                    width: qrWidth,
+                    height: qrHeight
+                });
+            } else {
+                throw new Error(`QR Code non trouvé: ${qrCodePath}`);
+            }
         } catch (imgError) {
             console.error(`❌ Erreur d'ajout du QR Code au PDF:`, imgError);
             doc.fillColor('#FFFFFF');

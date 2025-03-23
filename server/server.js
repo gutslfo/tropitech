@@ -1,4 +1,4 @@
-// server/server.js - Configuration corrigée
+// server/server.js - Configuration mise à jour
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -12,7 +12,7 @@ const dbConnect = require("./utils/dbConnect");
 
 // Import des routes
 const ticketRoutes = require("./routes/ticketRoutes");
-const paymentRoutes = require("./routes/paymentRoutes");
+const webhookRoutes = require("./routes/webhookRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -74,8 +74,9 @@ app.use(morgan('dev'));
 // ⚠️ IMPORTANT: L'ORDRE EST CRITIQUE ICI ⚠️
 // Les routes qui traitent les webhooks Stripe doivent être définies AVANT 
 // le middleware express.json() car elles ont besoin du corps brut (Buffer)
-// 1. Définir les routes des webhooks en premier (elles utilisent leur propre middleware express.raw)
-app.use("/api/payment", paymentRoutes);
+
+// 1. Monter les routes webhook
+app.use("/api/webhook", webhookRoutes);
 
 // 2. ENSUITE le middleware pour traiter le corps JSON et URL encoded pour les autres routes
 app.use(express.json());
@@ -89,18 +90,50 @@ app.get("/", (req, res) => {
     res.send("API Tropitech fonctionnelle!");
 });
 
-// Route de test pour les webhooks (pour vérifier la configuration)
-app.post("/test-webhook", express.raw({type: 'application/json'}), (req, res) => {
-    console.log("Test webhook endpoint hit!");
-    console.log("Is req.body a Buffer?", Buffer.isBuffer(req.body));
-    console.log("req.body length:", req.body.length);
+// Route de santé pour vérifier les dépendances critiques
+app.get("/health", async (req, res) => {
     try {
-        const jsonData = JSON.parse(req.body.toString());
-        console.log("Parsed JSON:", jsonData);
-        res.status(200).send({success: true, message: "Webhook test received successfully"});
+        const health = {
+            uptime: process.uptime(),
+            timestamp: Date.now(),
+            mongodb: false,
+            email: false,
+            directories: {
+                tickets: fs.existsSync(path.join(__dirname, 'tickets')),
+                qrcodes: fs.existsSync(path.join(__dirname, 'qrcodes')),
+                assets: fs.existsSync(path.join(__dirname, 'assets'))
+            }
+        };
+
+        // Vérifier la connexion MongoDB
+        try {
+            const mongoose = require('mongoose');
+            if (mongoose.connection.readyState === 1) {
+                health.mongodb = true;
+            } else {
+                health.mongodb = false;
+            }
+        } catch (error) {
+            health.mongodb = false;
+        }
+
+        // Vérifier email creds existent
+        health.email = !!(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+
+        // Vérifier que le logo existe
+        const logoPath = path.join(__dirname, 'assets', 'logo.png');
+        health.logo_exists = fs.existsSync(logoPath);
+
+        // Renvoyer le statut
+        const healthStatus = health.mongodb && health.email && 
+                             health.directories.tickets && 
+                             health.directories.qrcodes && 
+                             health.directories.assets && 
+                             health.logo_exists;
+
+        res.status(healthStatus ? 200 : 503).json(health);
     } catch (error) {
-        console.error("Error parsing JSON:", error);
-        res.status(400).send({success: false, error: "Invalid JSON"});
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -122,9 +155,9 @@ const startServer = async () => {
         // Démarrage du serveur après connexion à MongoDB
         app.listen(PORT, () => {
             console.log(`✅ Serveur démarré sur http://localhost:${PORT}`);
-            console.log(`ℹ️ Webhooks Stripe disponibles sur http://localhost:${PORT}/api/payment/webhook`);
-            console.log(`ℹ️ Pour tester les webhooks: curl -X POST http://localhost:${PORT}/test-webhook -H "Content-Type: application/json" -d '{"test":"data"}'`);
-            console.log(`ℹ️ Pour utiliser ngrok: npx ngrok http ${PORT}`);
+            console.log(`ℹ️ Webhooks Stripe disponibles sur http://localhost:${PORT}/api/webhook`);
+            console.log(`ℹ️ Test d'email: http://localhost:${PORT}/api/webhook/test-email`);
+            console.log(`ℹ️ Test de PDF: http://localhost:${PORT}/api/webhook/test-pdf`);
         });
     } catch (err) {
         console.error("❌ Erreur de démarrage du serveur:", err);

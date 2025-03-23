@@ -198,103 +198,6 @@ router.post("/create-payment", async (req, res) => {
   }
 });
 
-// ----------------------------------------------------
-// ROUTE : POST /webhook
-// Stripe envoie les événements (payment_intent.succeeded, etc.)
-// ----------------------------------------------------
-// IMPORTANT: Cette route doit être définie AVANT express.json() middleware dans server.js
-router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
-  console.log("📩 Webhook Stripe reçu !");
-  console.log("Headers:", JSON.stringify(req.headers));
-
-  try {
-    // Récupérer le corps de la requête en tant que Buffer
-    const payload = req.body;
-    const sig = req.headers['stripe-signature'];
-    let event;
-
-    // Vérifier si nous avons le corps et la signature
-    if (!payload) {
-      console.error("❌ Webhook error: Payload vide ou manquant");
-      return res.status(400).send("Webhook Error: Missing payload");
-    }
-
-    // Log pour le debugging
-    console.log(`📦 Payload reçu (Buffer): ${Buffer.isBuffer(payload)}, Taille: ${payload.length} bytes`);
-    console.log(`🔑 Signature présente: ${!!sig}`);
-    console.log(`🔒 Secret configuré: ${!!process.env.STRIPE_WEBHOOK_SECRET}`);
-
-    // SECURITY FIX: En production, on exige toujours la vérification de la signature
-    if (process.env.NODE_ENV === 'production' && (!process.env.STRIPE_WEBHOOK_SECRET || !sig)) {
-      console.error('❌ Webhook error: Signature verification required in production');
-      return res.status(403).send('Webhook signature verification failed');
-    }
-
-    // Vérifier la signature
-    try {
-      if (process.env.STRIPE_WEBHOOK_SECRET && sig) {
-        event = stripe.webhooks.constructEvent(
-          payload, 
-          sig, 
-          process.env.STRIPE_WEBHOOK_SECRET
-        );
-        console.log(`✅ Signature Stripe vérifiée`);
-      } else if (process.env.NODE_ENV !== 'production') {
-        // En développement uniquement, on peut accepter sans signature
-        try {
-          event = JSON.parse(payload.toString());
-          console.log(`⚠️ Webhook sans vérification de signature (développement uniquement)`);
-        } catch (parseError) {
-          console.error(`❌ Erreur de parsing JSON:`, parseError);
-          return res.status(400).send(`Webhook Error: Invalid JSON payload`);
-        }
-      } else {
-        throw new Error('Impossible de vérifier la signature du webhook');
-      }
-    } catch (signatureError) {
-      console.error(`❌ Erreur de signature webhook: ${signatureError.message}`);
-      console.error(`Headers: ${JSON.stringify(req.headers)}`);
-      console.error(`Body length: ${payload ? payload.length : 0}`);
-      // Afficher un extrait du payload pour debug
-      if (payload) {
-        try {
-          const payloadStr = payload.toString().substring(0, 100);
-          console.error(`Payload preview: ${payloadStr}...`);
-        } catch (e) {
-          console.error("Impossible d'afficher le payload");
-        }
-      }
-      return res.status(400).send(`Webhook Signature Error: ${signatureError.message}`);
-    }
-
-    console.log(`✅ Type d'événement: ${event.type}`);
-
-    // Traitement de l'événement payment_intent.succeeded
-    if (event.type === "payment_intent.succeeded") {
-      await handlePaymentIntentSucceeded(event.data.object);
-      return res.status(200).send('Webhook handled: payment_intent.succeeded');
-    } 
-    // Traitement de l'événement payment_intent.payment_failed
-    else if (event.type === "payment_intent.payment_failed") {
-      await handlePaymentIntentFailed(event.data.object);
-      return res.status(200).send('Webhook handled: payment_intent.payment_failed');
-    } 
-    // Autres événements
-    else {
-      console.log(`ℹ️ Événement non traité: ${event.type}`);
-      return res.status(200).send(`Webhook received: ${event.type}`);
-    }
-  } catch (error) {
-    console.error(`❌ Erreur globale webhook: ${error.message}`);
-    console.error(error.stack);
-    
-    // Send a 200 response to Stripe even for errors to prevent retries
-    // This is a best practice for Stripe webhooks
-    console.error("Sending 200 response to prevent retries, but error was:", error.message);
-    return res.status(200).send(`Webhook received but error occurred: ${error.message}`);
-  }
-});
-
 /*
 * Gestion d'un paiement réussi avec journalisation détaillée
 * @param {Object} paymentIntent - Objet PaymentIntent de Stripe
@@ -499,4 +402,9 @@ router.post("/test", express.raw({ type: 'application/json' }), (req, res) => {
   }
 });
 
-module.exports = router;
+// Exporter les fonctions de gestion des paiements
+module.exports = {
+  router,
+  handlePaymentIntentSucceeded,
+  handlePaymentIntentFailed
+};
