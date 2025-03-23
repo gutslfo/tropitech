@@ -1,12 +1,39 @@
----
+version: '3.8'
+
 services:
-  nextjs-app:
-    build: .
-    container_name: 'tropitech'
-    ports:
-      - "${PORT:-3000}:3000"
-    networks:
-      - npm-network
-    environment:
-      - PORT=3000
+  tropitech-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tropitech-app
     restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://mongo:27017/tropitech
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+    volumes:
+      - tickets:/app/server/tickets
+      - qrcodes:/app/server/qrcodes
+      - assets:/app/server/assets
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:6
+    container_name: tropitech-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+
+volumes:
+  tickets:
+  qrcodes:
+  assets:
+  mongo-data:
