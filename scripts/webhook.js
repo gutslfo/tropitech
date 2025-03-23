@@ -1,5 +1,5 @@
-// scripts/test-webhook.js
-// Script pour tester directement le traitement des webhooks Stripe
+// scripts/webhook-test.js
+// Script pour tester manuellement le webhook Stripe
 require('dotenv').config();
 const fetch = require('node-fetch');
 const crypto = require('crypto');
@@ -45,6 +45,7 @@ async function simulateWebhook() {
     console.log(`🔄 Envoi d'un webhook simulé à ${WEBHOOK_URL}`);
     console.log(`🔍 Type d'événement: ${event.type}`);
     console.log(`🆔 Payment Intent ID: ${paymentId}`);
+    console.log(`📧 Email: ${event.data.object.metadata.customer_email}`);
     
     // Headers par défaut
     const headers = {

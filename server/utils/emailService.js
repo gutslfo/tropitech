@@ -34,6 +34,7 @@ const sendTicketEmail = async (email, name, firstName, ticketData) => {
         let transporter;
         try {
             // Tenter d'utiliser la configuration sécurisée Gmail
+            console.log(`🔄 Tentative de configuration du transporteur email avec Gmail (SSL)...`);
             transporter = nodemailer.createTransport({
                 host: "smtp.gmail.com",            // Préciser explicitement le serveur SMTP
                 port: 465,                         // Port SMTP sécurisé
@@ -53,6 +54,7 @@ const sendTicketEmail = async (email, name, firstName, ticketData) => {
             console.warn(`⚠️ Échec de la configuration Gmail, tentative de configuration générique: ${gmailError.message}`);
             
             // Si la première configuration échoue, essayer avec une configuration plus générique
+            console.log(`🔄 Tentative de configuration alternative (service: "gmail")...`);
             transporter = nodemailer.createTransport({
                 service: "gmail",
                 auth: {
@@ -68,6 +70,7 @@ const sendTicketEmail = async (email, name, firstName, ticketData) => {
 
         // Nom du fichier pour la pièce jointe (sans le chemin complet)
         const attachmentFilename = `ticket_${firstName}_${name}.pdf`;
+        console.log(`📎 Préparation de la pièce jointe: ${attachmentFilename}`);
 
         // Construire les options de l'email
         const mailOptions = {
@@ -116,29 +119,89 @@ const sendTicketEmail = async (email, name, firstName, ticketData) => {
             ],
         };
 
+        console.log(`📤 Tentative d'envoi d'email à ${email}...`);
         // Tenter d'envoyer l'email
         try {
             const info = await transporter.sendMail(mailOptions);
             console.log(`✅ Email envoyé à ${email}, ID: ${info.messageId}`);
+            console.log(`📊 Détails de l'envoi:`, {
+                acceptedRecipients: info.accepted,
+                rejectedRecipients: info.rejected,
+                response: info.response,
+                messageId: info.messageId
+            });
             return info;
         } catch (sendError) {
             console.error(`❌ Erreur lors de l'envoi de l'email:`, sendError);
             
             // Si l'envoi échoue, essayer à nouveau avec une configuration alternative
             if (sendError.message.includes('attachments')) {
-                console.log(`⚠️ Tentative d'envoi sans pièce jointe...`);
+                console.log(`⚠️ Problème avec la pièce jointe. Tentative d'envoi sans pièce jointe...`);
                 delete mailOptions.attachments;
                 mailOptions.html += `<p style="color: red; font-weight: bold;">Avertissement: en raison d'un problème technique, votre billet n'a pas pu être joint à cet email. Veuillez contacter le support à etaris.collective@gmail.com.</p>`;
                 
-                const retryInfo = await transporter.sendMail(mailOptions);
-                console.log(`✅ Email envoyé sans pièce jointe à ${email}, ID: ${retryInfo.messageId}`);
-                return retryInfo;
+                try {
+                    const retryInfo = await transporter.sendMail(mailOptions);
+                    console.log(`✅ Email envoyé sans pièce jointe à ${email}, ID: ${retryInfo.messageId}`);
+                    return retryInfo;
+                } catch (retryError) {
+                    console.error(`❌ Échec de la seconde tentative:`, retryError);
+                    
+                    // Dernier essai avec configuration minimale
+                    try {
+                        console.log(`🔄 Dernière tentative avec configuration minimale...`);
+                        const lastTransporter = nodemailer.createTransport({
+                            service: "gmail",
+                            auth: {
+                                user: process.env.EMAIL_USER,
+                                pass: process.env.EMAIL_PASS,
+                            }
+                        });
+                        
+                        const simpleMailOptions = {
+                            from: process.env.EMAIL_USER,
+                            to: email,
+                            subject: "Votre billet pour Tropitech (Information importante)",
+                            text: `Bonjour ${firstName} ${name},\n\nVotre paiement pour l'événement Tropitech a bien été reçu.\nPour une raison technique, nous n'avons pas pu vous envoyer automatiquement votre billet.\n\nVeuillez nous contacter à etaris.collective@gmail.com pour recevoir votre billet manuellement.\n\nMerci et à bientôt !\nL'équipe Tropitech`
+                        };
+                        
+                        const lastInfo = await lastTransporter.sendMail(simpleMailOptions);
+                        console.log(`✅ Email minimal envoyé à ${email}, ID: ${lastInfo.messageId}`);
+                        return lastInfo;
+                    } catch (lastError) {
+                        console.error(`❌ Échec de la dernière tentative:`, lastError);
+                        throw lastError;
+                    }
+                }
             } else {
-                throw sendError; // Si ce n'est pas un problème de pièce jointe, propager l'erreur
+                // Tenter une méthode alternative
+                try {
+                    console.log(`🔄 Tentative avec transporteur alternatif...`);
+                    const altTransporter = nodemailer.createTransport({
+                        host: "smtp.gmail.com",
+                        port: 587,
+                        secure: false, // Utiliser TLS
+                        auth: {
+                            user: process.env.EMAIL_USER,
+                            pass: process.env.EMAIL_PASS,
+                        },
+                        tls: {
+                            rejectUnauthorized: false
+                        }
+                    });
+                    
+                    const info = await altTransporter.sendMail(mailOptions);
+                    console.log(`✅ Email envoyé avec transporteur alternatif à ${email}, ID: ${info.messageId}`);
+                    return info;
+                } catch (altError) {
+                    console.error(`❌ Échec avec transporteur alternatif:`, altError);
+                    throw altError; // Si ce n'est pas un problème de pièce jointe, propager l'erreur
+                }
             }
         }
     } catch (error) {
         console.error(`❌ Erreur lors de l'envoi du mail:`, error);
+        console.error(`Stack trace:`, error.stack);
         throw error; // Propager l'erreur pour la traiter à un niveau supérieur
     }
 };

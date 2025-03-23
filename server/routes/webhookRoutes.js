@@ -96,19 +96,44 @@ router.post("/", express.raw({ type: 'application/json' }), async (req, res) => 
  */
 async function handlePaymentIntentSucceeded(paymentIntent) {
     console.log(`✅ Paiement réussi! ID: ${paymentIntent.id}`);
-    console.log(`📝 Traitement début: ${new Date().toISOString()}`);
+    console.log(`📝 Flux d'exécution début: ${new Date().toISOString()}`);
 
     try {
         // Récupérer l'utilisateur
         console.log(`🔍 Recherche de l'utilisateur pour paymentId: ${paymentIntent.id}`);
-        const user = await User.findOne({ paymentId: paymentIntent.id });
+        let user = await User.findOne({ paymentId: paymentIntent.id });
 
-        if (!user) {
+        // Si aucun utilisateur n'est trouvé, essayer de le créer à partir des métadonnées
+        if (!user && paymentIntent.metadata) {
+            console.log(`⚠️ Aucun utilisateur trouvé pour paymentId=${paymentIntent.id}. Tentative de récupération depuis les métadonnées...`);
+            console.log(`📋 Métadonnées disponibles:`, paymentIntent.metadata);
+            
+            const { customer_name, customer_firstName, customer_email } = paymentIntent.metadata;
+            
+            if (customer_email) {
+                console.log(`📝 Création d'un nouvel utilisateur à partir des métadonnées...`);
+                user = new User({
+                    email: customer_email || paymentIntent.receipt_email || "no-email@example.com",
+                    name: customer_name || "Utilisateur",
+                    firstName: customer_firstName || "Anonyme",
+                    paymentId: paymentIntent.id,
+                    imageConsent: true // Par défaut
+                });
+                
+                await user.save();
+                console.log(`✅ Utilisateur créé depuis les métadonnées: ${user.email}`);
+            } else {
+                console.log(`⚠️ Impossible de créer l'utilisateur: métadonnées insuffisantes`);
+                // Debug: afficher toutes les métadonnées disponibles
+                console.log('Métadonnées Stripe disponibles:', JSON.stringify(paymentIntent));
+                return;
+            }
+        } else if (user) {
+            console.log(`✅ Utilisateur trouvé: ${user.email}`);
+        } else {
             console.error(`❌ Utilisateur non trouvé pour le paiement: ${paymentIntent.id}`);
             return;
         }
-
-        console.log(`✅ Utilisateur trouvé: ${user.email}`);
 
         // Vérifier si un ticket existe déjà pour ce paiement
         console.log(`🔍 Vérification si un ticket existe déjà...`);
@@ -143,7 +168,7 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
         });
         
         await ticket.save();
-        console.log(`✅ Ticket créé en base pour: ${user.email}`);
+        console.log(`✅ Ticket créé en base pour: ${user.email} (ID: ${ticket._id})`);
 
         // Génération du PDF avec QR Code
         try {
@@ -161,25 +186,59 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
             // Vérifier que le fichier existe
             if (fs.existsSync(ticketData.filePath)) {
                 console.log(`✅ Fichier PDF vérifié: ${ticketData.filePath} (${fs.statSync(ticketData.filePath).size} bytes)`);
+                
+                try {
+                    const stats = fs.statSync(ticketData.filePath);
+                    console.log(`- Taille: ${stats.size} octets`);
+                    console.log(`- Créé le: ${stats.birthtime}`);
+                    console.log(`- Permissions: ${stats.mode.toString(8)}`);
+                } catch (statError) {
+                    console.error(`❌ Erreur lors de la vérification du fichier:`, statError);
+                }
             } else {
                 throw new Error(`Le fichier PDF n'existe pas après génération: ${ticketData.filePath}`);
             }
             
+            // Test de la configuration email avant envoi
+            try {
+                console.log(`🔄 Test de la connexion email avant envoi...`);
+                const nodemailer = require("nodemailer");
+                
+                // Créer un transporteur de test
+                const testTransporter = nodemailer.createTransport({
+                    host: "smtp.gmail.com",
+                    port: 465,
+                    secure: true,
+                    auth: {
+                        user: process.env.EMAIL_USER,
+                        pass: process.env.EMAIL_PASS,
+                    }
+                });
+                
+                await testTransporter.verify();
+                console.log(`✅ Test de connexion email réussi`);
+            } catch (testError) {
+                console.error(`❌ Erreur lors du test de connexion email:`, testError);
+                // Continuer malgré l'erreur pour essayer d'envoyer l'email
+            }
+            
             // Envoyer l'email avec le billet
             console.log(`📧 Envoi de l'email à ${user.email}...`);
-            await sendTicketEmail(
+            const emailResult = await sendTicketEmail(
                 user.email,
                 user.name,
                 user.firstName,
                 ticketData
             );
             
-            console.log(`✅ Email envoyé à: ${user.email}`);
+            console.log(`✅ Email envoyé à: ${user.email}`, emailResult ? `(ID: ${emailResult.messageId})` : '');
         } catch (error) {
             console.error(`❌ Erreur génération/envoi du ticket: ${error.message}`);
             console.error(error.stack);
             // Même si l'envoi échoue, on ne veut pas perdre le ticket qui a été créé
         }
+        
+        console.log(`📝 Flux d'exécution terminé: ${new Date().toISOString()}`);
     } catch (error) {
         console.error(`❌ Erreur traitement paiement réussi: ${error.message}`);
         console.error(error.stack);
