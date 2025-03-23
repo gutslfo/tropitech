@@ -1,39 +1,18 @@
+// server/utils/generateTicket.js
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 const QRCode = require('qrcode');
-<<<<<<< HEAD
-=======
 const { createCanvas, loadImage, registerFont } = require('canvas');
->>>>>>> c153b443fc76e2b5684bdbf7b7de9c10326a18a1
 
 /**
- * Crée un QR Code simple
- * @param {string} data - Données à encoder dans le QR code
+ * Crée un QR Code stylisé avec les informations du billet
+ * @param {string} firstName - Prénom de l'utilisateur
+ * @param {string} lastName - Nom de l'utilisateur
+ * @param {string} paymentId - ID de paiement unique
  * @param {string} outputPath - Chemin de sortie du fichier
  * @returns {Promise<string>} - Chemin du fichier généré
  */
-<<<<<<< HEAD
-const createQRCode = async (data, outputPath) => {
-  try {
-    // Générer le QR code
-    await QRCode.toFile(outputPath, data, {
-      errorCorrectionLevel: 'H',
-      margin: 1,
-      width: 300,
-      color: {
-        dark: '#000000',  // QR code noir
-        light: '#FFFFFF'  // Fond blanc
-      }
-    });
-    
-    console.log(`✅ QR code généré: ${outputPath}`);
-    return outputPath;
-  } catch (error) {
-    console.error(`❌ Erreur lors de la génération du QR code:`, error);
-    throw error;
-  }
-=======
 const createStylishQRCode = async (firstName, lastName, paymentId, outputPath) => {
     try {
         // Données pour le QR code
@@ -101,7 +80,7 @@ const createStylishQRCode = async (firstName, lastName, paymentId, outputPath) =
         // Marque Tropitech en bas avec une police différente, plus distincte
         const customFontPath = path.join(__dirname, '..', 'assets', 'Barbra-Regular.ttf');  
         if (fs.existsSync(customFontPath)) {
-            // Correction: Utilisation de registerFont au lieu de new Canvas.Font
+            // Utilisation de registerFont au lieu de new Canvas.Font
             registerFont(customFontPath, { family: 'Barbra' });
             ctx.font = '200px Barbra'; // Utiliser la police Barbra avec une taille de 200px
         } else {
@@ -120,7 +99,6 @@ const createStylishQRCode = async (firstName, lastName, paymentId, outputPath) =
         console.error(`❌ Erreur lors de la génération du QR code stylisé:`, error);
         throw error;
     }
->>>>>>> c153b443fc76e2b5684bdbf7b7de9c10326a18a1
 };
 
 /**
@@ -133,78 +111,7 @@ const createStylishQRCode = async (firstName, lastName, paymentId, outputPath) =
  * @returns {Promise<Object>} - Chemins des fichiers générés
  */
 const generateTicketPDF = async (name, firstName, email, paymentId, category) => {
-  try {
-    console.log(`📄 Génération du billet pour ${email}`);
-    
-    // Créer les dossiers s'ils n'existent pas
-    const qrDir = path.join(__dirname, '..', 'qrcodes');
-    const ticketsDir = path.join(__dirname, '..', 'tickets');
-    
-    [qrDir, ticketsDir].forEach(dir => {
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-        console.log(`✅ Dossier créé: ${dir}`);
-      }
-    });
-    
-    // Chemins pour les fichiers
-    const qrCodePath = path.join(qrDir, `qrcode_${paymentId}.png`);
-    const filePath = path.join(ticketsDir, `ticket_${firstName}_${name}.pdf`);
-    
-    // Données pour le QR code
-    const qrData = `https://tropitech.ch/ticket/${paymentId}`;
-    
-    // Générer le QR code
-    await createQRCode(qrData, qrCodePath);
-    
-    // Créer un nouveau document PDF
-    const doc = new PDFDocument({
-      size: 'A4',
-      margin: 50,
-      info: {
-        Title: `Billet Tropitech - ${firstName} ${name}`,
-        Author: 'Tropitech',
-        Subject: 'Billet électronique',
-      }
-    });
-    
-    // Rediriger le document vers un fichier
-    const stream = fs.createWriteStream(filePath);
-    doc.pipe(stream);
-    
-    // Fond noir
-    doc.rect(0, 0, doc.page.width, doc.page.height).fill('#000000');
-    
-    // Titre
-    doc.fontSize(24).fillColor('#FFFFFF');
-    doc.text('TROPITECH', { align: 'center' });
-    doc.moveDown(0.5);
-    
-    // Sous-titre
-    doc.fontSize(16).fillColor('#FFFFFF');
-    doc.text('BILLET ÉLECTRONIQUE', { align: 'center' });
-    doc.moveDown(2);
-    
-    // Nom
-    doc.font('Helvetica-Bold').fontSize(20);
-    doc.text(`${firstName.toUpperCase()} ${name.toUpperCase()}`, { align: 'center' });
-    doc.moveDown(1);
-    
-    // QR Code
     try {
-<<<<<<< HEAD
-      const qrSize = 200;
-      const qrX = (doc.page.width - qrSize) / 2;
-      doc.image(qrCodePath, qrX, doc.y, {
-        width: qrSize,
-      });
-      doc.moveDown(3);
-    } catch (imgError) {
-      console.error(`❌ Erreur lors de l'ajout du QR Code au PDF:`, imgError);
-      // Continuer sans QR code
-      doc.text('QR Code non disponible', { align: 'center' });
-      doc.moveDown(3);
-=======
         console.log(`📄 Génération du billet pour ${email}`);
         
         // Créer les dossiers s'ils n'existent pas
@@ -248,26 +155,26 @@ const generateTicketPDF = async (name, firstName, email, paymentId, category) =>
         
         // Logo en haut (centré)
         try {
-            const logoPath = path.join(__dirname, '..', 'assets', 'logo.png'); // Use a PNG file
+            const logoPath = path.join(__dirname, '..', 'assets', 'logo.png');
             if (fs.existsSync(logoPath)) {
-                const logoWidth = 500;
+                const logoWidth = 200;
                 const logoX = (doc.page.width - logoWidth) / 2;
                 doc.image(logoPath, logoX, 50, {
                     width: logoWidth
                 });
+                doc.moveDown(2);
             }
         } catch (logoError) {
             console.error(`❌ Erreur d'ajout du logo:`, logoError);
-            // Continue without the logo
+            // Continuer sans logo
         }
 
-        // Add the QR Code (central element)
+        // Ajouter le QR Code (élément central)
         try {
-            const qrWidth = 150;
-            const qrHeight = 150;
+            const qrWidth = 300;
+            const qrHeight = 300;
             const qrX = (doc.page.width - qrWidth) / 2;
-            // Correction: utilisation de doc.page.height au lieu de height (variable non définie)
-            const qrY = 150; // Position fixe au lieu de calculée
+            const qrY = 150; // Position fixe
 
             doc.image(qrCodePath, qrX, qrY, {
                 width: qrWidth,
@@ -279,35 +186,39 @@ const generateTicketPDF = async (name, firstName, email, paymentId, category) =>
             doc.text('QR Code non disponible', { align: 'center' });
         }
 
-        // Minimalist information below the QR code
-        doc.moveDown(2);
+        // Informations minimalistes sous le QR code
+        doc.moveDown(4);
         doc.fontSize(14).fillColor('#FFFFFF');
 
-        // First name and last name in a different font (more elegant)
+        // Prénom et nom avec une police différente (plus élégante)
         doc.font('Helvetica-Bold').fontSize(24);
         doc.text(`${firstName.toUpperCase()} ${name.toUpperCase()}`, { align: 'center' });
 
-        doc.moveDown(4);
+        doc.moveDown(2);
 
-        // Category in a distinctive color
+        // Catégorie avec une couleur distinctive
         doc.font('Helvetica').fontSize(16);
-        doc.fillColor('#FFD700'); // Gold
+        doc.fillColor('#FFD700'); // Or
         doc.text(category, { align: 'center' });
 
-        doc.moveDown(3);
+        doc.moveDown(2);
 
-        // "TROPITECH" in large font at the bottom with custom font
-        const customFontPath = path.join(__dirname, '..', 'assets', 'Barbra-Regular.ttf');
-        if (fs.existsSync(customFontPath)) {
-            console.log(`✅ Police personnalisée trouvée: ${customFontPath}`);
-            doc.registerFont('BarbraRegular', customFontPath);
-            doc.font('BarbraRegular').fontSize(48).fillColor('#FFFFFF');
-        } else {
-            console.error(`❌ Police personnalisée non trouvée à ${customFontPath}, utilisation de la police par défaut.`);
-            doc.font('Times-Bold').fontSize(48).fillColor('#FFFFFF');
-        }
-        doc.text('TROPITECH', 50, doc.page.height - 100, { align: 'center' });
+        // Détails de l'événement
+        doc.fontSize(14).fillColor('#FFFFFF');
+        doc.text('Date: 19 Avril 2025', { align: 'center' });
+        doc.moveDown(0.5);
+        doc.text('Lieu: Caves du Château, Rue du Greny, Coppet', { align: 'center' });
+        doc.moveDown(2);
         
+        // Notes
+        doc.fontSize(12).fillColor('#AAAAAA');
+        doc.text('Veuillez présenter ce billet à l\'entrée. Une pièce d\'identité pourra vous être demandée.', { align: 'center' });
+        doc.moveDown(1);
+        
+        // ID unique
+        doc.fontSize(8).fillColor('#666666');
+        doc.text(`ID: ${paymentId}`, { align: 'center' });
+
         // Finaliser le document
         doc.end();
         
@@ -328,51 +239,7 @@ const generateTicketPDF = async (name, firstName, email, paymentId, category) =>
         console.error(`❌ Erreur génération billet:`, error);
         console.error(error.stack);
         throw error;
->>>>>>> c153b443fc76e2b5684bdbf7b7de9c10326a18a1
     }
-    
-    // Catégorie
-    doc.fontSize(16).fillColor('#FFD700'); // Or
-    doc.text(`Catégorie: ${category}`, { align: 'center' });
-    doc.moveDown(1);
-    
-    // Détails de l'événement
-    doc.fontSize(14).fillColor('#FFFFFF');
-    doc.text('Date: 19 Avril 2025', { align: 'center' });
-    doc.moveDown(0.5);
-    doc.text('Lieu: Caves du Château, Rue du Greny, Coppet', { align: 'center' });
-    doc.moveDown(2);
-    
-    // Notes
-    doc.fontSize(12).fillColor('#AAAAAA');
-    doc.text('Veuillez présenter ce billet à l\'entrée. Une pièce d\'identité pourra vous être demandée.', { align: 'center' });
-    doc.moveDown(1);
-    
-    // ID unique
-    doc.fontSize(8).fillColor('#666666');
-    doc.text(`ID: ${paymentId}`, { align: 'center' });
-    
-    // Finaliser le document
-    doc.end();
-    
-    // Attendre que le stream soit terminé
-    await new Promise((resolve, reject) => {
-      stream.on('finish', resolve);
-      stream.on('error', reject);
-    });
-    
-    console.log(`✅ Ticket PDF généré: ${filePath}`);
-    
-    return { 
-      filePath, 
-      qrCodePath, 
-      qrData 
-    };
-  } catch (error) {
-    console.error(`❌ Erreur génération billet:`, error);
-    console.error(error.stack);
-    throw error;
-  }
 };
 
-module.exports = { generateTicketPDF, createQRCode };
+module.exports = { generateTicketPDF, createStylishQRCode };

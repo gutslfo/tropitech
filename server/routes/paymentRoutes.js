@@ -100,7 +100,6 @@ router.post("/create-payment", async (req, res) => {
       });
     }
 
-<<<<<<< HEAD
     // Validation du format de l'email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -126,8 +125,6 @@ router.post("/create-payment", async (req, res) => {
       });
     }
 
-=======
->>>>>>> c153b443fc76e2b5684bdbf7b7de9c10326a18a1
     // Vérification de base
     if (!imageConsent) {
       console.log("❌ L'utilisateur n'a pas coché le droit à l'image.");
@@ -164,7 +161,6 @@ router.post("/create-payment", async (req, res) => {
     return res.json({ clientSecret: paymentIntent.client_secret });
   } catch (error) {
     console.error("❌ Erreur création paiement:", error);
-<<<<<<< HEAD
     
     // Erreurs Stripe spécifiques
     if (error.type === 'StripeCardError') {
@@ -195,8 +191,6 @@ router.post("/create-payment", async (req, res) => {
     }
     
     // Erreur par défaut
-=======
->>>>>>> c153b443fc76e2b5684bdbf7b7de9c10326a18a1
     return res.status(500).json({ 
       error: "Erreur lors de la création du paiement",
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -211,12 +205,24 @@ router.post("/create-payment", async (req, res) => {
 // IMPORTANT: Cette route doit être définie AVANT express.json() middleware dans server.js
 router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
   console.log("📩 Webhook Stripe reçu !");
+  console.log("Headers:", JSON.stringify(req.headers));
 
   try {
     // Récupérer le corps de la requête en tant que Buffer
     const payload = req.body;
     const sig = req.headers['stripe-signature'];
     let event;
+
+    // Vérifier si nous avons le corps et la signature
+    if (!payload) {
+      console.error("❌ Webhook error: Payload vide ou manquant");
+      return res.status(400).send("Webhook Error: Missing payload");
+    }
+
+    // Log pour le debugging
+    console.log(`📦 Payload reçu (Buffer): ${Buffer.isBuffer(payload)}, Taille: ${payload.length} bytes`);
+    console.log(`🔑 Signature présente: ${!!sig}`);
+    console.log(`🔒 Secret configuré: ${!!process.env.STRIPE_WEBHOOK_SECRET}`);
 
     // SECURITY FIX: En production, on exige toujours la vérification de la signature
     if (process.env.NODE_ENV === 'production' && (!process.env.STRIPE_WEBHOOK_SECRET || !sig)) {
@@ -235,19 +241,29 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
         console.log(`✅ Signature Stripe vérifiée`);
       } else if (process.env.NODE_ENV !== 'production') {
         // En développement uniquement, on peut accepter sans signature
-        event = JSON.parse(payload.toString());
-        console.log(`⚠️ Webhook sans vérification de signature (développement uniquement)`);
+        try {
+          event = JSON.parse(payload.toString());
+          console.log(`⚠️ Webhook sans vérification de signature (développement uniquement)`);
+        } catch (parseError) {
+          console.error(`❌ Erreur de parsing JSON:`, parseError);
+          return res.status(400).send(`Webhook Error: Invalid JSON payload`);
+        }
       } else {
         throw new Error('Impossible de vérifier la signature du webhook');
       }
     } catch (signatureError) {
       console.error(`❌ Erreur de signature webhook: ${signatureError.message}`);
-<<<<<<< HEAD
-      // Log more details about the request
       console.error(`Headers: ${JSON.stringify(req.headers)}`);
       console.error(`Body length: ${payload ? payload.length : 0}`);
-=======
->>>>>>> c153b443fc76e2b5684bdbf7b7de9c10326a18a1
+      // Afficher un extrait du payload pour debug
+      if (payload) {
+        try {
+          const payloadStr = payload.toString().substring(0, 100);
+          console.error(`Payload preview: ${payloadStr}...`);
+        } catch (e) {
+          console.error("Impossible d'afficher le payload");
+        }
+      }
       return res.status(400).send(`Webhook Signature Error: ${signatureError.message}`);
     }
 
@@ -287,7 +303,6 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
  console.log(`✅ Paiement réussi! ID: ${paymentIntent.id}`);
  console.log(`📝 Flux d'exécution début: ${new Date().toISOString()}`);
 
-<<<<<<< HEAD
  try {
    // Connecter à la DB si pas déjà connecté
    console.log(`🔄 Tentative de connexion à la base de données...`);
@@ -338,49 +353,6 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
      console.log(`❌ Aucun utilisateur trouvé et impossible d'en créer un nouveau`);
      return;
    }
-=======
-  try {
-    // Connecter à la DB si pas déjà connecté
-    await dbConnect();
-    
-    // Vérifier si un ticket existe déjà
-    const existingTicket = await Ticket.findOne({ paymentId: paymentIntent.id });
-    if (existingTicket) {
-      console.log(`ℹ️ Un ticket existe déjà pour ce paiement: ${paymentIntent.id}`);
-      return;
-    }
-
-    // Retrouver l'utilisateur en base
-    let user = await User.findOne({ paymentId: paymentIntent.id });
-    
-    // Si aucun utilisateur n'est trouvé, essayer de le créer à partir des métadonnées
-    if (!user && paymentIntent.metadata) {
-      console.log(`⚠️ Aucun utilisateur trouvé pour le paymentId=${paymentIntent.id}. Tentative de récupération depuis les métadonnées...`);
-      
-      const { customer_name, customer_firstName, customer_email } = paymentIntent.metadata;
-      
-      if (customer_email) {
-        user = new User({
-          email: customer_email || paymentIntent.receipt_email || "no-email@example.com",
-          name: customer_name || "Utilisateur",
-          firstName: customer_firstName || "Anonyme",
-          paymentId: paymentIntent.id,
-          imageConsent: true // Par défaut
-        });
-        
-        await user.save();
-        console.log(`✅ Utilisateur créé depuis les métadonnées: ${user.email}`);
-      } else {
-        console.log(`⚠️ Impossible de créer l'utilisateur: métadonnées insuffisantes`);
-        return;
-      }
-    } else if (user) {
-      console.log(`✅ Utilisateur trouvé: ${user.email}`);
-    } else {
-      console.log(`❌ Aucun utilisateur trouvé et impossible d'en créer un nouveau`);
-      return;
-    }
->>>>>>> c153b443fc76e2b5684bdbf7b7de9c10326a18a1
 
    // Déterminer la catégorie en fonction du nombre de tickets vendus
    console.log(`🔢 Calcul de la catégorie en fonction du nombre de tickets vendus...`);
@@ -509,7 +481,6 @@ async function handlePaymentIntentFailed(paymentIntent) {
     console.error(error.stack);
     throw error; // Propager l'erreur pour le traitement global
   }
-<<<<<<< HEAD
 }
 
 // Ajoutez ceci à la fin de votre webhookRoutes.js
@@ -529,6 +500,3 @@ router.post("/test", express.raw({ type: 'application/json' }), (req, res) => {
 });
 
 module.exports = router;
-=======
-}
->>>>>>> c153b443fc76e2b5684bdbf7b7de9c10326a18a1

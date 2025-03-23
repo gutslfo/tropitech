@@ -1,4 +1,4 @@
-// server/server.js
+// server/server.js - Configuration corrigée
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -18,7 +18,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Vérifier les variables d'environnement essentielles
-const requiredEnvVars = ['MONGO_URI', 'STRIPE_SECRET_KEY', 'EMAIL_USER', 'EMAIL_PASS'];
+const requiredEnvVars = ['MONGO_URI', 'STRIPE_SECRET_KEY', 'EMAIL_USER', 'EMAIL_PASS', 'STRIPE_WEBHOOK_SECRET'];
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
 if (missingEnvVars.length > 0) {
@@ -49,6 +49,13 @@ dirs.forEach(dir => {
 // Middleware de journalisation détaillée
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    
+    // Log pour les webhooks
+    if (req.url.includes('/webhook')) {
+        console.log(`💡 Webhook détecté: ${req.url}`);
+        console.log(`Content-Type: ${req.headers['content-type']}`);
+    }
+    
     next();
 });
 
@@ -64,9 +71,10 @@ app.use(cors({
 // Logger HTTP avec Morgan
 app.use(morgan('dev'));
 
-// ATTENTION: L'ordre est important ici!
-// 1. D'abord la route webhook qui a besoin du corps brut
-// IMPORTANT: La route /api/payment/webhook doit être configurée AVANT express.json middleware
+// ⚠️ IMPORTANT: L'ORDRE EST CRITIQUE ICI ⚠️
+// Les routes qui traitent les webhooks Stripe doivent être définies AVANT 
+// le middleware express.json() car elles ont besoin du corps brut (Buffer)
+// 1. Définir les routes des webhooks en premier (elles utilisent leur propre middleware express.raw)
 app.use("/api/payment", paymentRoutes);
 
 // 2. ENSUITE le middleware pour traiter le corps JSON et URL encoded pour les autres routes
@@ -79,6 +87,21 @@ app.use("/api/ticket", ticketRoutes);
 // Route par défaut pour vérifier que le serveur fonctionne
 app.get("/", (req, res) => {
     res.send("API Tropitech fonctionnelle!");
+});
+
+// Route de test pour les webhooks (pour vérifier la configuration)
+app.post("/test-webhook", express.raw({type: 'application/json'}), (req, res) => {
+    console.log("Test webhook endpoint hit!");
+    console.log("Is req.body a Buffer?", Buffer.isBuffer(req.body));
+    console.log("req.body length:", req.body.length);
+    try {
+        const jsonData = JSON.parse(req.body.toString());
+        console.log("Parsed JSON:", jsonData);
+        res.status(200).send({success: true, message: "Webhook test received successfully"});
+    } catch (error) {
+        console.error("Error parsing JSON:", error);
+        res.status(400).send({success: false, error: "Invalid JSON"});
+    }
 });
 
 // Middleware de gestion des erreurs
@@ -100,6 +123,7 @@ const startServer = async () => {
         app.listen(PORT, () => {
             console.log(`✅ Serveur démarré sur http://localhost:${PORT}`);
             console.log(`ℹ️ Webhooks Stripe disponibles sur http://localhost:${PORT}/api/payment/webhook`);
+            console.log(`ℹ️ Pour tester les webhooks: curl -X POST http://localhost:${PORT}/test-webhook -H "Content-Type: application/json" -d '{"test":"data"}'`);
             console.log(`ℹ️ Pour utiliser ngrok: npx ngrok http ${PORT}`);
         });
     } catch (err) {
