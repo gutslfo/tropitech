@@ -24,12 +24,16 @@ const sendTicketEmail = async (email, name, firstName, ticketData) => {
             throw new Error(`Fichier PDF non trouvé: ${ticketData?.filePath}`);
         }
 
+<<<<<<< HEAD
         // Vérifier l'email du destinataire
         if (!email || !email.includes('@') || !email.includes('.')) {
             throw new Error(`Email destinataire invalide: ${email}`);
         }
 
         // Utiliser un transport SMTP correctement configuré pour Gmail
+=======
+        // Créer le transporteur avec configuration sécurisée
+>>>>>>> c153b443fc76e2b5684bdbf7b7de9c10326a18a1
         const transporter = nodemailer.createTransport({
             host: "smtp.gmail.com",            // Préciser explicitement le serveur SMTP
             port: 465,                         // Port SMTP sécurisé
@@ -38,9 +42,21 @@ const sendTicketEmail = async (email, name, firstName, ticketData) => {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS,  // Utiliser un mot de passe d'application pour Gmail
             },
+<<<<<<< HEAD
             // En production, désactiver le mode debug
             debug: process.env.NODE_ENV !== 'production',
             logger: process.env.NODE_ENV !== 'production',
+=======
+            // En production, on désactive le mode debug
+            debug: process.env.NODE_ENV !== 'production',
+            logger: process.env.NODE_ENV !== 'production',
+            // Activer les options de sécurité
+            secure: true,
+            tls: {
+                // Demander un certificat client
+                rejectUnauthorized: true
+            }
+>>>>>>> c153b443fc76e2b5684bdbf7b7de9c10326a18a1
         });
 
         // Vérifier la connexion au service d'email, puis envoyer avec une stratégie de retry
@@ -48,6 +64,7 @@ const sendTicketEmail = async (email, name, firstName, ticketData) => {
         let success = false;
         let lastError = null;
 
+<<<<<<< HEAD
         while (retries > 0 && !success) {
             try {
                 // Vérifier d'abord la connexion
@@ -105,6 +122,43 @@ const sendTicketEmail = async (email, name, firstName, ticketData) => {
                     ],
                 };
 
+=======
+        const mailOptions = {
+            from: {
+                name: 'Tropitech Event',
+                address: process.env.EMAIL_USER
+            },
+            to: email,
+            subject: "Votre billet pour Tropitech",
+            text: `Bonjour ${firstName} ${name},\n\nVoici votre billet pour l'événement Tropitech.\n\nDate: 19 Avril 2025\nLieu: Caves du Château, Rue du Greny, Coppet\n\nMerci et à bientôt !\nL'équipe Tropitech`,
+            html: `
+                <div style="font-family: Arial, sans-serif; color: #333;">
+                    <h2 style="color: #6200ea;">Votre billet pour Tropitech</h2>
+                    <p>Bonjour <strong>${firstName} ${name}</strong>,</p>
+                    <p>Nous vous remercions pour votre achat. Votre billet est joint à ce message.</p>
+                    <p>Date: <strong>19 Avril 2025</strong></p>
+                    <p>Lieu: <strong>Caves du Château, Rue du Greny, Coppet</strong></p>
+                    <p>À très bientôt !</p>
+                    <p>L'équipe Tropitech</p>
+                </div>
+            `,
+            attachments: [
+                {
+                    filename: `ticket_${firstName}_${name}.pdf`,
+                    path: ticketData.filePath,
+                    contentType: 'application/pdf'
+                },
+            ],
+        };
+
+        // Implémenter un mécanisme de retry
+        let retries = 3;
+        let success = false;
+        let lastError = null;
+
+        while (retries > 0 && !success) {
+            try {
+>>>>>>> c153b443fc76e2b5684bdbf7b7de9c10326a18a1
                 // Envoyer l'email
                 const info = await transporter.sendMail(mailOptions);
                 console.log(`✅ Email envoyé à ${email}, ID: ${info.messageId}`);

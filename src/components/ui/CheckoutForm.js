@@ -2,9 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import Link from 'next/link';
 
+<<<<<<< HEAD
 // Si vous utilisez TicketAvailability, assurez-vous qu'il est correctement importé
 // import TicketAvailability from './TicketAvailability';
 
+=======
+>>>>>>> c153b443fc76e2b5684bdbf7b7de9c10326a18a1
 // Configuration des prix - idéalement charger depuis le serveur
 const PRICES = {
   earlyBird: 10,
@@ -124,6 +127,7 @@ const CheckoutForm = () => {
     
     try {
       // 1. Créer l'intention de paiement
+<<<<<<< HEAD
       let response;
       try {
         response = await fetch('/api/payment/create-payment', {
@@ -183,6 +187,24 @@ const CheckoutForm = () => {
       } catch (jsonError) {
         console.error('Erreur parsing JSON:', jsonError, 'Réponse:', response);
         throw new Error(`Erreur lors du traitement de la réponse: ${jsonError.message}`);
+=======
+      const response = await fetch('/api/payment/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: activePrice * 100, // En centimes
+          email,
+          name,
+          firstName,
+          imageConsent,
+          category: activeCategory
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erreur lors de la création du paiement');
+>>>>>>> c153b443fc76e2b5684bdbf7b7de9c10326a18a1
       }
       
       setClientSecret(data.clientSecret);
@@ -253,8 +275,12 @@ const CheckoutForm = () => {
 
   return (
     <div className="max-w-3xl mx-auto p-4">
+<<<<<<< HEAD
       {/* Si vous utilisez TicketAvailability, décommentez la ligne suivante */}
       {/* <TicketAvailability activeCategory={activeCategory} /> */}
+=======
+      <TicketAvailability activeCategory={activeCategory} />
+>>>>>>> c153b443fc76e2b5684bdbf7b7de9c10326a18a1
 
       <div className="bg-black text-white rounded-lg p-6 shadow-lg mt-8">
         <h2 className="text-2xl font-bold mb-6 text-center">Réservation de billet</h2>
@@ -437,7 +463,7 @@ const CheckoutForm = () => {
       <div className="mt-6 text-center text-sm text-gray-500">
         <p>
           Pour toute question, veuillez nous contacter à{' '}
-          <a
+          
             href="mailto:etaris.collective@gmail.com"
             className="text-purple-400 hover:text-purple-300"
           >
