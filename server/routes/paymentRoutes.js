@@ -1,20 +1,18 @@
 // server/routes/paymentRoutes.js
 require("dotenv").config();
-
-// Affiche la clé Stripe utilisée
-console.log("🔍 Clé Stripe utilisée :", process.env.STRIPE_SECRET_KEY);
-
 const express = require("express");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const QRCode = require("qrcode");
+const path = require("path");
+const fs = require("fs");
+const router = express.Router();
+
+// Import du modèle de connexion DB unifié
+const dbConnect = require("../utils/dbConnect");
 const User = require("../models/User");
 const Ticket = require("../models/ticket");
 const { sendTicketEmail } = require("../utils/emailService");
 const { generateTicketPDF } = require("../utils/generateTicket");
-const fs = require("fs");
-const path = require("path");
-
-const router = express.Router();
 
 console.log("✅ paymentRoutes chargé");
 
@@ -86,10 +84,46 @@ router.get("/test-email", async (req, res) => {
 // ----------------------------------------------------
 router.post("/create-payment", async (req, res) => {
   try {
+    // Connecter à la DB si pas déjà connecté
+    await dbConnect();
+    
     console.log("✅ POST /api/payment/create-payment appelé !");
     console.log("Body reçu:", req.body);
 
     const { amount, email, name, firstName, imageConsent } = req.body;
+
+    // Validation des données d'entrée
+    if (!amount || !email || !name || !firstName) {
+      return res.status(400).json({ 
+        error: "Données incomplètes",
+        details: "Tous les champs (amount, email, name, firstName) sont requis" 
+      });
+    }
+
+    // Validation du format de l'email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        error: "Format d'email invalide",
+        details: "Veuillez fournir une adresse email valide" 
+      });
+    }
+
+    // Validation du montant
+    if (isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ 
+        error: "Montant invalide",
+        details: "Le montant doit être un nombre positif" 
+      });
+    }
+
+    // Validation de la longueur des noms
+    if (name.length > 100 || firstName.length > 100) {
+      return res.status(400).json({ 
+        error: "Données trop longues",
+        details: "Le nom et prénom ne doivent pas dépasser 100 caractères" 
+      });
+    }
 
     // Vérification de base
     if (!imageConsent) {
@@ -102,6 +136,11 @@ router.post("/create-payment", async (req, res) => {
       amount,
       currency: "chf",
       receipt_email: email,
+      metadata: {
+        customer_name: name,
+        customer_firstName: firstName,
+        customer_email: email
+      }
     });
     console.log("✅ PaymentIntent créé :", paymentIntent.id);
 
@@ -122,7 +161,40 @@ router.post("/create-payment", async (req, res) => {
     return res.json({ clientSecret: paymentIntent.client_secret });
   } catch (error) {
     console.error("❌ Erreur création paiement:", error);
-    return res.status(500).json({ error: "Erreur lors de la création du paiement" });
+    
+    // Erreurs Stripe spécifiques
+    if (error.type === 'StripeCardError') {
+      return res.status(400).json({ 
+        error: "Erreur de carte bancaire", 
+        details: error.message 
+      });
+    } else if (error.type === 'StripeRateLimitError') {
+      return res.status(429).json({ 
+        error: "Trop de requêtes", 
+        details: "Veuillez réessayer dans quelques instants" 
+      });
+    } else if (error.type === 'StripeInvalidRequestError') {
+      return res.status(400).json({ 
+        error: "Requête invalide", 
+        details: process.env.NODE_ENV === 'development' ? error.message : "Paramètres de requête invalides" 
+      });
+    } else if (error.type === 'StripeAPIError') {
+      return res.status(503).json({ 
+        error: "Erreur API Stripe", 
+        details: "Le service de paiement est temporairement indisponible" 
+      });
+    } else if (error.name === 'MongoServerError' && error.code === 11000) {
+      return res.status(409).json({ 
+        error: "Duplication", 
+        details: "Ce paiement a déjà été enregistré" 
+      });
+    }
+    
+    // Erreur par défaut
+    return res.status(500).json({ 
+      error: "Erreur lors de la création du paiement",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -140,28 +212,34 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
     const sig = req.headers['stripe-signature'];
     let event;
 
-    // Vérifier la signature si un secret est configuré
-    if (process.env.STRIPE_WEBHOOK_SECRET && sig) {
-      try {
+    // SECURITY FIX: En production, on exige toujours la vérification de la signature
+    if (process.env.NODE_ENV === 'production' && (!process.env.STRIPE_WEBHOOK_SECRET || !sig)) {
+      console.error('❌ Webhook error: Signature verification required in production');
+      return res.status(403).send('Webhook signature verification failed');
+    }
+
+    // Vérifier la signature
+    try {
+      if (process.env.STRIPE_WEBHOOK_SECRET && sig) {
         event = stripe.webhooks.constructEvent(
           payload, 
           sig, 
           process.env.STRIPE_WEBHOOK_SECRET
         );
         console.log(`✅ Signature Stripe vérifiée`);
-      } catch (signatureError) {
-        console.error(`❌ Erreur de signature webhook: ${signatureError.message}`);
-        return res.status(400).send(`Webhook Signature Error: ${signatureError.message}`);
-      }
-    } else {
-      // Sinon, juste parser le JSON (moins sécurisé, à utiliser uniquement en développement)
-      try {
+      } else if (process.env.NODE_ENV !== 'production') {
+        // En développement uniquement, on peut accepter sans signature
         event = JSON.parse(payload.toString());
         console.log(`⚠️ Webhook sans vérification de signature (développement uniquement)`);
-      } catch (parseError) {
-        console.error(`❌ Erreur de parsing du payload: ${parseError.message}`);
-        return res.status(400).send(`Webhook Parsing Error: ${parseError.message}`);
+      } else {
+        throw new Error('Impossible de vérifier la signature du webhook');
       }
+    } catch (signatureError) {
+      console.error(`❌ Erreur de signature webhook: ${signatureError.message}`);
+      // Log more details about the request
+      console.error(`Headers: ${JSON.stringify(req.headers)}`);
+      console.error(`Body length: ${payload ? payload.length : 0}`);
+      return res.status(400).send(`Webhook Signature Error: ${signatureError.message}`);
     }
 
     console.log(`✅ Type d'événement: ${event.type}`);
@@ -184,102 +262,174 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
   } catch (error) {
     console.error(`❌ Erreur globale webhook: ${error.message}`);
     console.error(error.stack);
-    return res.status(500).send(`Webhook Error: ${error.message}`);
+    
+    // Send a 200 response to Stripe even for errors to prevent retries
+    // This is a best practice for Stripe webhooks
+    console.error("Sending 200 response to prevent retries, but error was:", error.message);
+    return res.status(200).send(`Webhook received but error occurred: ${error.message}`);
   }
 });
 
-/**
- * Gestion d'un paiement réussi
- * @param {Object} paymentIntent - Objet PaymentIntent de Stripe
- */
+/*
+* Gestion d'un paiement réussi avec journalisation détaillée
+* @param {Object} paymentIntent - Objet PaymentIntent de Stripe
+*/
 async function handlePaymentIntentSucceeded(paymentIntent) {
-  console.log(`✅ Paiement réussi! ID: ${paymentIntent.id}`);
+ console.log(`✅ Paiement réussi! ID: ${paymentIntent.id}`);
+ console.log(`📝 Flux d'exécution début: ${new Date().toISOString()}`);
 
-  try {
-    // Vérifier si un ticket existe déjà
-    const existingTicket = await Ticket.findOne({ paymentId: paymentIntent.id });
-    if (existingTicket) {
-      console.log(`ℹ️ Un ticket existe déjà pour ce paiement: ${paymentIntent.id}`);
-      return;
-    }
+ try {
+   // Connecter à la DB si pas déjà connecté
+   console.log(`🔄 Tentative de connexion à la base de données...`);
+   await dbConnect();
+   console.log(`✅ Connexion à la base de données réussie`);
+   
+   // Vérifier si un ticket existe déjà
+   console.log(`🔍 Recherche d'un ticket existant pour paymentId: ${paymentIntent.id}`);
+   const existingTicket = await Ticket.findOne({ paymentId: paymentIntent.id });
+   if (existingTicket) {
+     console.log(`ℹ️ Un ticket existe déjà pour ce paiement: ${paymentIntent.id}`);
+     return;
+   }
+   console.log(`✅ Aucun ticket existant trouvé, création d'un nouveau ticket...`);
 
-    // Retrouver l'utilisateur en base
-    let user = await User.findOne({ paymentId: paymentIntent.id });
-    
-    // Si aucun utilisateur n'est trouvé, créer un utilisateur test pour le développement
-    if (!user) {
-      console.log(`⚠️ Aucun utilisateur trouvé pour le paymentId=${paymentIntent.id}. Création d'un utilisateur de test...`);
-      
-      user = new User({
-        email: paymentIntent.receipt_email || "test@example.com",
-        name: "Test",
-        firstName: "User",
-        paymentId: paymentIntent.id,
-        imageConsent: true
-      });
-      
-      await user.save();
-      console.log(`✅ Utilisateur de test créé: ${user.email}`);
-    } else {
-      console.log(`✅ Utilisateur trouvé: ${user.email}`);
-    }
+   // Retrouver l'utilisateur en base
+   console.log(`🔍 Recherche de l'utilisateur pour paymentId: ${paymentIntent.id}`);
+   let user = await User.findOne({ paymentId: paymentIntent.id });
+   
+   // Si aucun utilisateur n'est trouvé, essayer de le créer à partir des métadonnées
+   if (!user && paymentIntent.metadata) {
+     console.log(`⚠️ Aucun utilisateur trouvé pour le paymentId=${paymentIntent.id}. Tentative de récupération depuis les métadonnées...`);
+     console.log(`📋 Métadonnées disponibles:`, paymentIntent.metadata);
+     
+     const { customer_name, customer_firstName, customer_email } = paymentIntent.metadata;
+     
+     if (customer_email) {
+       console.log(`📝 Création d'un nouvel utilisateur à partir des métadonnées...`);
+       user = new User({
+         email: customer_email || paymentIntent.receipt_email || "no-email@example.com",
+         name: customer_name || "Utilisateur",
+         firstName: customer_firstName || "Anonyme",
+         paymentId: paymentIntent.id,
+         imageConsent: true // Par défaut
+       });
+       
+       await user.save();
+       console.log(`✅ Utilisateur créé depuis les métadonnées: ${user.email}`);
+     } else {
+       console.log(`⚠️ Impossible de créer l'utilisateur: métadonnées insuffisantes`);
+       // Debug: afficher toutes les métadonnées disponibles
+       console.log('Métadonnées Stripe disponibles:', JSON.stringify(paymentIntent));
+       return;
+     }
+   } else if (user) {
+     console.log(`✅ Utilisateur trouvé: ${user.email}`);
+   } else {
+     console.log(`❌ Aucun utilisateur trouvé et impossible d'en créer un nouveau`);
+     return;
+   }
 
-    // Déterminer la catégorie en fonction du nombre de tickets vendus
-    const ticketCount = await Ticket.countDocuments();
-    let category = "thirdRelease"; // Par défaut
-    
-    if (ticketCount < 30) {
-      category = "earlyBird";
-    } else if (ticketCount < 90) {
-      category = "secondRelease";
-    }
+   // Déterminer la catégorie en fonction du nombre de tickets vendus
+   console.log(`🔢 Calcul de la catégorie en fonction du nombre de tickets vendus...`);
+   const ticketCount = await Ticket.countDocuments();
+   console.log(`📊 Nombre total de tickets vendus: ${ticketCount}`);
+   
+   let category = "thirdRelease"; // Par défaut
+   
+   if (ticketCount < 30) {
+     category = "earlyBird";
+   } else if (ticketCount < 90) {
+     category = "secondRelease";
+   }
+   console.log(`✅ Catégorie déterminée: ${category}`);
 
-    // Créer le nouveau ticket en BDD
-    const newTicket = new Ticket({
-      paymentId: paymentIntent.id,
-      email: user.email,
-      name: user.name,
-      firstName: user.firstName,
-      category,
-      imageConsent: user.imageConsent
-    });
-    
-    await newTicket.save();
-    console.log(`✅ Ticket créé en base pour: ${user.email}`);
+   // Créer le nouveau ticket en BDD
+   console.log(`📝 Création d'un nouveau ticket en base de données...`);
+   const newTicket = new Ticket({
+     paymentId: paymentIntent.id,
+     email: user.email,
+     name: user.name,
+     firstName: user.firstName,
+     category,
+     imageConsent: user.imageConsent
+   });
+   
+   await newTicket.save();
+   console.log(`✅ Ticket créé en base pour: ${user.email} (ID: ${newTicket._id})`);
 
-    try {
-      // Générer le PDF du billet
-      console.log(`📄 Début génération PDF pour ${user.email}...`);
-      const ticketData = await generateTicketPDF(
-        user.name,
-        user.firstName,
-        user.email,
-        paymentIntent.id,
-        category
-      );
-      
-      console.log(`✅ PDF généré avec succès: ${ticketData.filePath}`);
-      
-      // Envoi de l'email
-      console.log(`📧 Début envoi email à ${user.email}...`);
-      await sendTicketEmail(
-        user.email,
-        user.name,
-        user.firstName,
-        ticketData
-      );
-      
-      console.log(`✅ Email envoyé avec succès à ${user.email}`);
-    } catch (emailError) {
-      console.error(`❌ Erreur lors de la génération/envoi de l'email:`, emailError);
-      console.error(emailError.stack);
-      // Ne pas faire échouer tout le processus, le ticket est déjà créé
-    }
-  } catch (error) {
-    console.error(`❌ Erreur traitement paiement réussi:`, error);
-    console.error(error.stack);
-    throw error; // Propager l'erreur pour le traitement global
-  }
+   // Bloc pour générer et envoyer le PDF
+   console.log(`📄 Début du processus d'envoi de PDF...`);
+   try {
+     // Générer le PDF du billet
+     console.log(`📄 Génération du PDF pour ${user.email}...`);
+     const ticketData = await generateTicketPDF(
+       user.name,
+       user.firstName,
+       user.email,
+       paymentIntent.id,
+       category
+     );
+     
+     console.log(`✅ PDF généré avec succès: ${ticketData.filePath}`);
+     console.log(`📊 Informations sur le fichier PDF:`);
+     
+     try {
+       const stats = fs.statSync(ticketData.filePath);
+       console.log(`- Taille: ${stats.size} octets`);
+       console.log(`- Créé le: ${stats.birthtime}`);
+       console.log(`- Permissions: ${stats.mode.toString(8)}`);
+     } catch (statError) {
+       console.error(`❌ Erreur lors de la vérification du fichier:`, statError);
+     }
+     
+     // Envoi de l'email
+     console.log(`📧 Début de l'envoi de l'email à ${user.email}...`);
+     
+     // Test de la configuration email avant envoi
+     try {
+       const { sendTicketEmail } = require("../utils/emailService");
+       const nodemailer = require("nodemailer");
+       
+       // Créer un transporteur de test
+       const testTransporter = nodemailer.createTransport({
+         host: "smtp.gmail.com",
+         port: 465,
+         secure: true,
+         auth: {
+           user: process.env.EMAIL_USER,
+           pass: process.env.EMAIL_PASS,
+         }
+       });
+       
+       console.log(`🔄 Test de la connexion email avant envoi...`);
+       await testTransporter.verify();
+       console.log(`✅ Test de connexion email réussi`);
+       
+       // Envoi du véritable email avec le ticket
+       await sendTicketEmail(
+         user.email,
+         user.name,
+         user.firstName,
+         ticketData
+       );
+       
+       console.log(`✅ Email envoyé avec succès à ${user.email}`);
+     } catch (emailTestError) {
+       console.error(`❌ Erreur dans le test de connexion email:`, emailTestError);
+       throw emailTestError; // Re-lancer pour être capturé par le bloc parent
+     }
+   } catch (emailError) {
+     console.error(`❌ Erreur lors de la génération/envoi de l'email:`, emailError);
+     console.error(emailError.stack);
+     // Ne pas faire échouer tout le processus, le ticket est déjà créé
+   }
+   
+   console.log(`📝 Flux d'exécution terminé: ${new Date().toISOString()}`);
+ } catch (error) {
+   console.error(`❌ Erreur traitement paiement réussi:`, error);
+   console.error(error.stack);
+   throw error; // Propager l'erreur pour le traitement global
+ }
 }
 
 /**
@@ -290,6 +440,9 @@ async function handlePaymentIntentFailed(paymentIntent) {
   console.log(`⚠️ Paiement échoué! ID: ${paymentIntent.id}`);
 
   try {
+    // Connecter à la DB si pas déjà connecté
+    await dbConnect();
+    
     const user = await User.findOne({ paymentId: paymentIntent.id });
     if (!user) {
       console.error(`❌ Utilisateur non trouvé pour le paiement échoué: ${paymentIntent.id}`);
@@ -304,5 +457,21 @@ async function handlePaymentIntentFailed(paymentIntent) {
     throw error; // Propager l'erreur pour le traitement global
   }
 }
+
+// Ajoutez ceci à la fin de votre webhookRoutes.js
+router.post("/test", express.raw({ type: 'application/json' }), (req, res) => {
+  console.log("Test webhook reçu!");
+  console.log("Type de req.body:", typeof req.body); // Devrait être "object" (Buffer)
+  console.log("Est-ce un Buffer?", Buffer.isBuffer(req.body)); // Devrait être true
+  
+  // Si c'est un Buffer, tout va bien
+  if (Buffer.isBuffer(req.body)) {
+    const payload = req.body.toString();
+    console.log("Payload (premiers 100 caractères):", payload.substring(0, 100));
+    res.status(200).send("Test webhook reçu correctement comme Buffer!");
+  } else {
+    res.status(400).send("Erreur: req.body n'est pas un Buffer!");
+  }
+});
 
 module.exports = router;

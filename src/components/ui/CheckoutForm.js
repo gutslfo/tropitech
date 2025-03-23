@@ -1,7 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import TicketAvailability from './TicketAvailability';
 import Link from 'next/link';
+
+// Si vous utilisez TicketAvailability, assurez-vous qu'il est correctement importé
+// import TicketAvailability from './TicketAvailability';
+
+// Configuration des prix - idéalement charger depuis le serveur
+const PRICES = {
+  earlyBird: 10,
+  secondRelease: 15,
+  thirdRelease: 18
+};
 
 const CheckoutForm = () => {
   const stripe = useStripe();
@@ -28,48 +37,54 @@ const CheckoutForm = () => {
   const [errors, setErrors] = useState({});
 
   // Récupérer le prix actif et la catégorie en fonction des places
-  useEffect(() => {
-    const fetchTicketPrices = async () => {
-      try {
-        const response = await fetch('/api/ticket/places-restantes');
-        
-        if (!response.ok) {
-          throw new Error('Erreur lors de la récupération des places');
-        }
-        
-        const data = await response.json();
-        
-        // Déterminer la catégorie active
-        let price = 18;
-        let category = 'thirdRelease';
-        
-        if (data.earlyBird > 0) {
-          price = 10;
-          category = 'earlyBird';
-        } else if (data.secondRelease > 0) {
-          price = 15;
-          category = 'secondRelease';
-        } else if (data.thirdRelease > 0) {
-          price = 18;
-          category = 'thirdRelease';
-        } else {
-          // Toutes les places épuisées
-          price = 0;
-          category = '';
-        }
-
-        setActivePrice(price);
-        setActiveCategory(category);
-      } catch (error) {
-        console.error('Erreur:', error);
-        // Valeurs par défaut en cas d'erreur
-        setActivePrice(18);
-        setActiveCategory('thirdRelease');
+  const fetchTicketPrices = useCallback(async () => {
+    try {
+      setPaymentError(null);
+      const response = await fetch('/api/ticket/places-restantes');
+      
+      if (!response.ok) {
+        throw new Error('Erreur lors de la récupération des places');
       }
-    };
-    
-    fetchTicketPrices();
+      
+      const data = await response.json();
+      
+      // Déterminer la catégorie active
+      let price = 0;
+      let category = '';
+      
+      if (data.earlyBird > 0) {
+        price = PRICES.earlyBird;
+        category = 'earlyBird';
+      } else if (data.secondRelease > 0) {
+        price = PRICES.secondRelease;
+        category = 'secondRelease';
+      } else if (data.thirdRelease > 0) {
+        price = PRICES.thirdRelease;
+        category = 'thirdRelease';
+      } else {
+        // Toutes les places épuisées
+        price = 0;
+        category = '';
+      }
+
+      setActivePrice(price);
+      setActiveCategory(category);
+    } catch (error) {
+      console.error('Erreur:', error);
+      setPaymentError('Impossible de charger les prix. Veuillez rafraîchir la page.');
+      // Valeurs par défaut en cas d'erreur
+      setActivePrice(PRICES.thirdRelease);
+      setActiveCategory('thirdRelease');
+    }
   }, []);
+
+  useEffect(() => {
+    fetchTicketPrices();
+    
+    // Rafraîchir les prix toutes les 30 secondes
+    const intervalId = setInterval(fetchTicketPrices, 30000);
+    return () => clearInterval(intervalId);
+  }, [fetchTicketPrices]);
 
   // Validation du formulaire
   const validateForm = () => {
@@ -109,25 +124,67 @@ const CheckoutForm = () => {
     
     try {
       // 1. Créer l'intention de paiement
-      const response = await fetch('/api/payment/create-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: activePrice * 100,
-          email,
-          name,
-          firstName,
-          imageConsent,
-          category: activeCategory
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erreur lors de la création du paiement');
+      let response;
+      try {
+        response = await fetch('/api/payment/create-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: activePrice * 100, // En centimes
+            email,
+            name,
+            firstName,
+            imageConsent,
+            category: activeCategory
+          }),
+        });
+      } catch (fetchError) {
+        console.error('Erreur de connexion:', fetchError);
+        throw new Error('Erreur de connexion au serveur. Veuillez vérifier votre connexion internet.');
       }
       
-      const data = await response.json();
+      // Vérifier si la réponse est correcte
+      if (!response.ok) {
+        let errorMessage = `Erreur serveur: ${response.status}`;
+        
+        // Essayer de lire le message d'erreur du serveur
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.details || errorMessage;
+        } catch (jsonError) {
+          console.error('Erreur de parsing JSON de la réponse d\'erreur:', jsonError);
+          // Si on ne peut pas parser le JSON, utiliser le texte brut si disponible
+          const textError = await response.text();
+          if (textError) {
+            errorMessage = `Erreur: ${textError.substring(0, 100)}${textError.length > 100 ? '...' : ''}`;
+          }
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      // Essayer de parser la réponse JSON avec gestion d'erreur
+      let data;
+      try {
+        const responseText = await response.text();
+        
+        // Vérifier si la réponse n'est pas vide
+        if (!responseText || responseText.trim() === '') {
+          throw new Error('La réponse du serveur est vide');
+        }
+        
+        // Parser le texte en JSON
+        data = JSON.parse(responseText);
+        
+        // Vérifier que le client_secret est présent
+        if (!data || !data.clientSecret) {
+          throw new Error('Le client_secret est manquant dans la réponse');
+        }
+      } catch (jsonError) {
+        console.error('Erreur parsing JSON:', jsonError, 'Réponse:', response);
+        throw new Error(`Erreur lors du traitement de la réponse: ${jsonError.message}`);
+      }
+      
       setClientSecret(data.clientSecret);
       
       // 2. Confirmer le paiement
@@ -159,12 +216,27 @@ const CheckoutForm = () => {
     }
   };
 
-  // Aucune place ?
-  if (activePrice === 0) {
+  // Gérer la déconnexion de Stripe ou l'absence de catégorie active
+  if (!stripe || !activeCategory) {
     return (
-      <div className="text-center p-8 bg-red-800 rounded-lg shadow-lg">
-        <h2 className="text-2xl text-white font-bold mb-4">Toutes les places sont épuisées</h2>
-        <p className="text-white mb-4">Désolé, il n'y a plus de billets disponibles pour cet événement.</p>
+      <div className="max-w-3xl mx-auto p-4">
+        <div className="text-center p-8 bg-black rounded-lg shadow-lg">
+          <h2 className="text-2xl text-white font-bold mb-4">
+            {!stripe ? "Connexion à Stripe en cours..." : "Aucune place disponible"}
+          </h2>
+          <p className="text-white mb-4">
+            {!stripe 
+              ? "Veuillez patienter pendant que nous établissons la connexion sécurisée." 
+              : "Désolé, il n'y a plus de billets disponibles pour cet événement."}
+          </p>
+          {!stripe ? (
+            <div className="animate-pulse text-white">Chargement...</div>
+          ) : (
+            <Link href="/" className="text-blue-400 hover:text-blue-300 underline">
+              Retour à l'accueil
+            </Link>
+          )}
+        </div>
       </div>
     );
   }
@@ -181,11 +253,8 @@ const CheckoutForm = () => {
 
   return (
     <div className="max-w-3xl mx-auto p-4">
-      {/*
-        TicketAvailability n'affiche plus que la catégorie sélectionnée,
-        grâce à la prop activeCategory
-      */}
-      <TicketAvailability activeCategory={activeCategory} />
+      {/* Si vous utilisez TicketAvailability, décommentez la ligne suivante */}
+      {/* <TicketAvailability activeCategory={activeCategory} /> */}
 
       <div className="bg-black text-white rounded-lg p-6 shadow-lg mt-8">
         <h2 className="text-2xl font-bold mb-6 text-center">Réservation de billet</h2>
@@ -380,4 +449,5 @@ const CheckoutForm = () => {
   );
 };
 
+// IMPORTANT: Assurez-vous que cette ligne est présente pour exporter le composant par défaut
 export default CheckoutForm;
