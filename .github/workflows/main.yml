@@ -1,14 +1,11 @@
 name: Docker Compose Build & Deploy
-
 on:
   push:
     branches:
       - main  # Change this to match your deployment branch
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v0.1.10
@@ -18,12 +15,30 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e  # Exit on any command failure
-
-            cd /home/ubuntu/docker/tropitech
-            git pull
-            cd /home/ubuntu/docker
-            echo "🛠️ Building new Docker images..."
-            docker-compose build --no-cache
-            echo "✅ Build successful! Restarting containers..."
+            
+            # 1. Aller dans le répertoire du projet
+            cd /home/ubuntu/tropitech
+            
+            # 2. Récupérer les dernières modifications
+            echo "🔄 Pulling latest changes..."
+            git pull origin main
+            
+            # 3. S'assurer que les fichiers .env sont à jour (si nécessaire)
+            # Si vous stockez votre .env en sécurité sur le serveur, assurez-vous qu'il est présent
+            if [ ! -f .env ]; then
+              echo "⚠️ .env file not found, creating from template..."
+              cp .env.example .env
+              # Vous pourriez ajouter des commandes pour remplir dynamiquement le .env ici
+            fi
+            
+            # 4. Construire et redémarrer les conteneurs
+            echo "🛠️ Building Docker images..."
+            docker-compose build
+            
+            echo "🚀 Restarting containers..."
             docker-compose down
             docker-compose up -d
+            
+            # 5. Vérification rapide
+            echo "✅ Deployment complete. Container status:"
+            docker-compose ps
