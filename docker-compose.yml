@@ -1,4 +1,3 @@
-
 services:
   frontend:
     build:
@@ -9,7 +8,6 @@ services:
     ports:
       - "3000:3000"
     networks:
-<<<<<<< HEAD
       - tropitech-network
     environment:
       - NEXT_PUBLIC_API_URL=http://backend:5000
@@ -28,11 +26,6 @@ services:
       - tropitech-network
     env_file:
       - .env
-=======
-      - npm-network
-    env_file:
-      - path: .env
->>>>>>> 4365d5df70c64ad601569d3b13e37ce72aed8076
     environment:
       - NODE_ENV=production
       - MONGO_URI=mongodb://mongo:27017/tropitech
@@ -44,8 +37,7 @@ services:
       - qrcodes:/app/server/qrcodes
       - assets:/app/server/assets
     depends_on:
-      mongo:
-        condition: service_healthy
+      - mongo
 
   mongo:
     image: mongo:6
@@ -53,6 +45,8 @@ services:
     restart: unless-stopped
     volumes:
       - mongo-data:/data/db
+    ports:
+      - "27017:27017"
     networks:
       - tropitech-network
     healthcheck:
@@ -61,10 +55,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    ports:
-      - "27017:27017"
-    networks:
-      - npm-network
 
 networks:
   tropitech-network:

@@ -32,5 +32,5 @@ RUN npm run build
 # Exposer le port
 EXPOSE 3000
 
-# Commande de démarrage
-CMD ["npm", "run", "start"]
+# Commande de démarrage modifiée pour output: standalone
+CMD ["node", ".next/standalone/server.js"]
