@@ -1,81 +1,77 @@
-# Stage 1: Builder pour Node.js
+# Dockerfile pour l'application Tropitech
 FROM node:18-alpine AS builder
 
-# Répertoire de travail
-WORKDIR /app
+# Variables d'environnement pour la construction
+ENV NODE_ENV=production
+ENV PYTHON=/usr/bin/python3
 
-# Installation de Python et des outils de build essentiels pour node-gyp
+# Installer les dépendances nécessaires pour Canvas et PDFKit
 RUN apk add --no-cache \
     python3 \
     make \
     g++ \
-    pixman-dev \
     cairo-dev \
-    pango-dev \
     jpeg-dev \
+    pango-dev \
     giflib-dev \
-    fontconfig-dev \
-    freetype-dev
+    build-base
 
-# Créer un lien symbolique pour python
-RUN ln -sf /usr/bin/python3 /usr/bin/python
+# Définir le répertoire de travail
+WORKDIR /app
 
-# Configurer npm pour utiliser python3
-RUN npm config set python /usr/bin/python3
-
-# Copier les fichiers package pour installer les dépendances
+# Copier package.json et package-lock.json
 COPY package*.json ./
 
-# Installer les dépendances avec des options explicites pour node-gyp
-RUN npm install --python=/usr/bin/python3
+# Installer les dépendances
+RUN npm ci
 
-# Copier le reste du code source
+# Copier le reste des fichiers
 COPY . .
 
 # Construire l'application Next.js
 RUN npm run build
 
-# Stage 2: Image de production
-FROM node:18-alpine
+# Production stage
+FROM node:18-alpine AS runner
 
-# Répertoire de travail
+# Installer les dépendances de production pour Canvas et PDF
+RUN apk add --no-cache \
+    cairo \
+    jpeg \
+    pango \
+    giflib \
+    font-noto
+
+# Variables d'environnement pour l'exécution
+ENV NODE_ENV=production
+
+# Créer un utilisateur non-root pour plus de sécurité
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Créer les dossiers nécessaires pour l'application
+RUN mkdir -p /app/server/tickets /app/server/qrcodes /app/server/assets && \
+    chown -R nextjs:nodejs /app
+
+# Définir le répertoire de travail
 WORKDIR /app
 
-# Installation des dépendances runtime pour les modules compilés
-RUN apk add --no-cache \
-    python3 \
-    pixman \
-    cairo \
-    pango \
-    jpeg \
-    giflib \
-    fontconfig \
-    freetype
+# Copier les fichiers nécessaires à l'exécution
+COPY --from=builder --chown=nextjs:nodejs /app/package*.json ./
+COPY --from=builder --chown=nextjs:nodejs /app/next.config.js ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/server ./server
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 
-# Créer un lien symbolique pour python (nécessaire pour certains scripts)
-RUN ln -sf /usr/bin/python3 /usr/bin/python
+# Installer seulement les dépendances de production
+RUN npm ci --omit=dev
 
-# Créer les dossiers nécessaires
-RUN mkdir -p server/tickets server/qrcodes server/assets
-
-# Copier les fichiers package et installer les dépendances de production
-COPY package*.json ./
-RUN npm config set python /usr/bin/python3 && \
-    npm ci --only=production --python=/usr/bin/python3
-
-# Copier les fichiers construits depuis l'étape builder
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/server ./server
-COPY --from=builder /app/scripts ./scripts
-COPY --from=builder /app/next.config.js ./next.config.js
-
-# Configuration de l'environnement
-ENV NODE_ENV=production
-ENV PORT=3000
+# Changer pour l'utilisateur non-root
+USER nextjs
 
 # Exposer le port
-EXPOSE ${PORT}
+EXPOSE 3000
 
-# Démarrer le serveur Node.js
-CMD ["node", "server/server.js"]
+# Définir la commande pour démarrer l'application
+CMD ["npm", "start"]
