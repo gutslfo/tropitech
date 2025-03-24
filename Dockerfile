@@ -17,6 +17,9 @@ RUN apk add --no-cache \
     fontconfig-dev \
     freetype-dev
 
+# Définir python pour npm
+RUN ln -sf /usr/bin/python3 /usr/bin/python
+
 # Copier les fichiers package pour installer les dépendances
 COPY package*.json ./
 RUN npm install
@@ -29,7 +32,6 @@ RUN mkdir -p server/tickets server/qrcodes server/assets
 
 # Construire l'application Next.js
 RUN npm run build
-
 # Stage 2: Image de production
 FROM node:18-alpine
 
