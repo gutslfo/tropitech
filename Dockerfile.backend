@@ -1,0 +1,42 @@
+# Dockerfile.backend
+FROM node:18-alpine
+
+# Variables d'environnement
+ENV NODE_ENV=production
+ENV PYTHON=/usr/bin/python3
+
+# Installer les dépendances nécessaires
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    giflib-dev \
+    bash \
+    mongodb-tools
+
+# Définir le répertoire de travail
+WORKDIR /app
+
+# Copier les fichiers de dépendances en premier pour utiliser le cache Docker
+COPY package*.json ./
+RUN npm ci
+
+# Copier uniquement les fichiers du backend
+COPY server/ ./server/
+COPY scripts/ ./scripts/
+
+# Créer les dossiers nécessaires
+RUN mkdir -p /app/server/tickets /app/server/qrcodes /app/server/assets
+
+# Copier le script de démarrage
+COPY start-backend.sh ./
+RUN chmod +x start-backend.sh
+
+# Exposer le port du backend
+EXPOSE 5000
+
+# Commande de démarrage
+CMD ["./start-backend.sh"]

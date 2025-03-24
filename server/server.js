@@ -59,14 +59,30 @@ app.use((req, res, next) => {
     next();
 });
 
-// Activer CORS avec des options sécurisées
-app.use(cors({
-    origin: process.env.NODE_ENV === 'production' 
-        ? ['https://tropitech.ch', 'https://www.tropitech.ch'] 
-        : true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'stripe-signature']
-}));
+// Configuration CORS améliorée pour la communication avec le frontend
+const corsOptions = {
+    origin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'stripe-signature'],
+    credentials: true
+};
+
+// Pour le développement, permettre plusieurs origines
+if (process.env.NODE_ENV !== 'production') {
+    const allowedOrigins = ['http://localhost:3000', 'http://frontend:3000'];
+    corsOptions.origin = (origin, callback) => {
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    };
+    console.log('⚠️ Mode développement: CORS configuré pour permettre plusieurs origines');
+}
+
+// Activer CORS avec les options
+app.use(cors(corsOptions));
+console.log(`✅ CORS configuré pour: ${corsOptions.origin}`);
 
 // Logger HTTP avec Morgan
 app.use(morgan('dev'));
@@ -87,7 +103,13 @@ app.use("/api/ticket", ticketRoutes);
 
 // Route par défaut pour vérifier que le serveur fonctionne
 app.get("/", (req, res) => {
-    res.send("API Tropitech fonctionnelle!");
+    res.json({
+        status: "success",
+        message: "API Tropitech opérationnelle",
+        version: "1.0.0",
+        env: process.env.NODE_ENV,
+        serverTime: new Date().toISOString()
+    });
 });
 
 // Route de santé pour vérifier les dépendances critiques
@@ -154,10 +176,9 @@ const startServer = async () => {
         
         // Démarrage du serveur après connexion à MongoDB
         app.listen(PORT, () => {
-            console.log(`✅ Serveur démarré sur http://localhost:${PORT}`);
+            console.log(`✅ Serveur backend démarré sur http://localhost:${PORT}`);
             console.log(`ℹ️ Webhooks Stripe disponibles sur http://localhost:${PORT}/api/webhook`);
-            console.log(`ℹ️ Test d'email: http://localhost:${PORT}/api/webhook/test-email`);
-            console.log(`ℹ️ Test de PDF: http://localhost:${PORT}/api/webhook/test-pdf`);
+            console.log(`ℹ️ Frontend attendu sur: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
         });
     } catch (err) {
         console.error("❌ Erreur de démarrage du serveur:", err);

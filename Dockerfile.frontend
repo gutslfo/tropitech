@@ -1,0 +1,36 @@
+FROM node:18-alpine
+
+# Installer les dépendances nécessaires
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    giflib-dev
+
+# Définir l'environnement Python
+ENV PYTHON=/usr/bin/python3
+ENV NODE_ENV=production
+ENV NEXT_PUBLIC_API_URL=http://backend:5000
+
+WORKDIR /app
+
+# Copier les fichiers package.json et package-lock.json
+COPY package*.json ./
+
+# Installer les dépendances
+RUN npm ci
+
+# Copier le reste des fichiers du projet
+COPY . .
+
+# Build l'application Next.js
+RUN npm run build
+
+# Exposer le port
+EXPOSE 3000
+
+# Commande de démarrage
+CMD ["npm", "run", "start"]
