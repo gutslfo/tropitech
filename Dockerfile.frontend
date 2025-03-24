@@ -1,7 +1,7 @@
 FROM node:18-slim
 
 # Variables d'environnement cruciales pour Tailwind v4
-ENV TAILWIND_SKIP_BINARIES=1
+ENV TAILWIND_DISABLE_OXIDE=1
 ENV NODE_ENV=production
 ENV NEXT_PUBLIC_API_URL=http://backend:5000
 ENV NEXT_TELEMETRY_DISABLED=1
