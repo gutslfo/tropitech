@@ -4,7 +4,7 @@ FROM node:18-alpine AS builder
 # Répertoire de travail
 WORKDIR /app
 
-# Installation des dépendances nécessaires pour canvas et la génération de PDF/QR code
+# Installation de Python et des outils de build essentiels pour node-gyp
 RUN apk add --no-cache \
     python3 \
     make \
@@ -17,44 +17,51 @@ RUN apk add --no-cache \
     fontconfig-dev \
     freetype-dev
 
-# Définir python pour npm
+# Créer un lien symbolique pour python
 RUN ln -sf /usr/bin/python3 /usr/bin/python
+
+# Configurer npm pour utiliser python3
+RUN npm config set python /usr/bin/python3
 
 # Copier les fichiers package pour installer les dépendances
 COPY package*.json ./
-RUN npm install
+
+# Installer les dépendances avec des options explicites pour node-gyp
+RUN npm install --python=/usr/bin/python3
 
 # Copier le reste du code source
 COPY . .
 
-# Créer les dossiers nécessaires pour les tickets/QR codes
-RUN mkdir -p server/tickets server/qrcodes server/assets
-
 # Construire l'application Next.js
 RUN npm run build
+
 # Stage 2: Image de production
 FROM node:18-alpine
 
 # Répertoire de travail
 WORKDIR /app
 
-# Installation des dépendances runtime pour canvas
+# Installation des dépendances runtime pour les modules compilés
 RUN apk add --no-cache \
+    python3 \
     pixman \
     cairo \
     pango \
     jpeg \
     giflib \
     fontconfig \
-    freetype \
-    ttf-dejavu
+    freetype
+
+# Créer un lien symbolique pour python (nécessaire pour certains scripts)
+RUN ln -sf /usr/bin/python3 /usr/bin/python
 
 # Créer les dossiers nécessaires
 RUN mkdir -p server/tickets server/qrcodes server/assets
 
 # Copier les fichiers package et installer les dépendances de production
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm config set python /usr/bin/python3 && \
+    npm ci --only=production --python=/usr/bin/python3
 
 # Copier les fichiers construits depuis l'étape builder
 COPY --from=builder /app/.next ./.next
@@ -63,22 +70,12 @@ COPY --from=builder /app/server ./server
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/next.config.js ./next.config.js
 
-# Créer un utilisateur non-root pour la sécurité
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
-# Définir les permissions pour les dossiers qui nécessitent un accès en écriture
-RUN chown -R appuser:appgroup /app/server/tickets /app/server/qrcodes /app/server/assets
-RUN chmod -R 755 /app/server/tickets /app/server/qrcodes /app/server/assets
-
 # Configuration de l'environnement
 ENV NODE_ENV=production
 ENV PORT=3000
 
 # Exposer le port
 EXPOSE ${PORT}
-
-# Passer à l'utilisateur non-root
-USER appuser
 
 # Démarrer le serveur Node.js
 CMD ["node", "server/server.js"]
