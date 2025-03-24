@@ -1,36 +1,36 @@
-FROM node:18-alpine
+FROM node:18-slim
 
-# Installer les dépendances nécessaires
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    cairo-dev \
-    jpeg-dev \
-    pango-dev \
-    giflib-dev
-
-# Définir l'environnement Python
-ENV PYTHON=/usr/bin/python3
+# Variables d'environnement cruciales pour Tailwind v4
+ENV TAILWIND_SKIP_BINARIES=1
 ENV NODE_ENV=production
 ENV NEXT_PUBLIC_API_URL=http://backend:5000
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Installation des dépendances pour les modules natifs
+RUN apt-get update && apt-get install -y \
+    python3 \
+    build-essential \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libgif-dev \
+    librsvg2-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copier les fichiers package.json et package-lock.json
+# Copie des fichiers package.json et installation des dépendances
 COPY package*.json ./
-
-# Installer les dépendances
 RUN npm ci
 
-# Copier le reste des fichiers du projet
+# Copie du reste des fichiers
 COPY . .
 
-# Build l'application Next.js
+# Construction de l'application
 RUN npm run build
 
-# Exposer le port
+# Exposition du port
 EXPOSE 3000
 
-# Commande de démarrage modifiée pour output: standalone
+# Démarrage du serveur
 CMD ["node", ".next/standalone/server.js"]
