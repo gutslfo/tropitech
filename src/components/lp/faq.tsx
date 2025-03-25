@@ -103,9 +103,28 @@ const imgs = [
 		</AccordionItem>
 		<AccordionItem value="item-3">
 		  <AccordionTrigger className="text-xl">Est-ce facile d'accès ? Y a t-il des trains toute la nuit?</AccordionTrigger>
-		  <AccordionContent className="ml-5 text-lg my-2">
-			L'événement a lieu a 3 min à pied de la gare de Coppet.<br/><br/> Des trains en direction de Genève et de Lausanne circulent toute la nuit.<br/><br/>Lien Google Maps :<br/><span className="block h-2" /><Link href={"https://maps.app.goo.gl/7D6145TF1Q7NVCnB6"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Caves du Château, Rue du Greny</Link>
-		  </AccordionContent>
+			<AccordionContent className="ml-5 text-lg my-2">
+  L'événement a lieu a 3 min à pied de la gare de Coppet.<br/><br/> Des trains en direction de Genève et de Lausanne circulent toute la nuit.<br/><br/>Lien Google Maps :<br/><span className="block h-2" /><Link href={"https://maps.app.goo.gl/7D6145TF1Q7NVCnB6"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80"><ExternalLink className="size-5" />Caves du Château, Rue du Greny</Link>
+  
+  <div className="mt-6">
+    <h4 className="font-bold text-xl mb-3">Parkings:</h4>
+    <div className="ml-3 space-y-3">
+      <div>
+        <p className="font-medium">Parking du Port de Coppet</p>
+        <Link href={"https://maps.app.goo.gl/JstZCNv9Kw3DuXaB6"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80 mt-1">
+          <ExternalLink className="size-5" />Google Maps
+        </Link>
+      </div>
+      
+      <div>
+        <p className="font-medium">Parking de la Patinoire</p>
+        <Link href={"https://maps.app.goo.gl/P7M6b9xuTbfTvEHL7"} className="underline underline-offset-2 flex justify-start items-center gap-2 duration-150 hover:text-foreground/80 mt-1">
+          <ExternalLink className="size-5" />Google Maps
+        </Link>
+      </div>
+    </div>
+  </div>
+</AccordionContent>
 		</AccordionItem>
 		<AccordionItem value="item-4">
 		  <AccordionTrigger className="text-xl">Y aura-t-il de quoi se restaurer sur place ?</AccordionTrigger>
