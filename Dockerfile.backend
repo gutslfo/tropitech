@@ -38,5 +38,7 @@ RUN chmod +x start-backend.sh
 # Exposer le port du backend
 EXPOSE 5000
 
+# RUN npm install && npm run build
+
 # Commande de démarrage
 CMD ["./start-backend.sh"]

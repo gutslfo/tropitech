@@ -27,7 +27,7 @@ RUN npm ci
 COPY . .
 
 # Construction de l'application
-RUN npm run build
+RUN npm install && npm run build
 
 # Exposition du port
 EXPOSE 3000
