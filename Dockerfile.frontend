@@ -1,7 +1,6 @@
-FROM node:18-slim
+FROM node:20-slim
 
-# Variables d'environnement cruciales pour Tailwind v4
-ENV TAILWIND_DISABLE_OXIDE=1
+# Variables d'environnement cruciales
 ENV NODE_ENV=production
 ENV NEXT_PUBLIC_API_URL=http://backend:5000
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -27,10 +26,10 @@ RUN npm ci
 COPY . .
 
 # Construction de l'application
-# RUN npm install && npm run build
+RUN npm run build
 
 # Exposition du port
 EXPOSE 3000
 
-# Démarrage du serveur
-CMD ["node", ".next/standalone/server.js"]
+# Démarrage du serveur Next.js
+CMD ["npm", "start"]

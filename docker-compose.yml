@@ -10,9 +10,10 @@ services:
     networks:
       - tropitech-network
     environment:
-      - NEXT_PUBLIC_API_URL=http://backend:5000
+      - NEXT_PUBLIC_API_URL=http://localhost:5000
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
   backend:
     build:
@@ -31,16 +32,23 @@ services:
       - MONGO_URI=mongodb://mongo:27017/tropitech
       - PORT=5000
       - FRONTEND_URL=http://frontend:3000
-      - CORS_ORIGIN=http://frontend:3000
+      - CORS_ORIGIN=http://localhost:3000
     volumes:
       - tickets:/app/server/tickets
       - qrcodes:/app/server/qrcodes
       - assets:/app/server/assets
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   mongo:
-    image: mongo:6
+    image: mongo:7
     container_name: tropitech-mongo
     restart: unless-stopped
     volumes:
@@ -55,14 +63,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-
-  # app:
-    # build:
-    #   context: .
-    # environment:
-    #   - NEXT_PUBLIC_API_URL=http://localhost:5000
-    # ports:
-    #   - "3000:3000"
 
 networks:
   tropitech-network:
