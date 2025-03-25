@@ -2,10 +2,11 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import fs from "fs";
+import path from "path";
 
 // Import models with correct paths
 // Corrected paths and imports for server models
-let User, Ticket, generateTicketPDF, sendTicketEmail;
+let User, Ticket, generateTicketPDF, sendTicketEmail, hasEmailBeenSent;
 
 // Initialize mongoose models dynamically to avoid direct import path issues
 const initModels = async () => {
@@ -34,6 +35,7 @@ const initModels = async () => {
         Ticket = TicketModel.default;
         generateTicketPDF = TicketUtils.generateTicketPDF;
         sendTicketEmail = EmailUtils.sendTicketEmail;
+        hasEmailBeenSent = EmailUtils.hasEmailBeenSent;
 
         console.log("✅ Models and utilities loaded successfully");
     } catch (error) {
@@ -76,11 +78,43 @@ export async function GET(req) {
         // Vérifier si un ticket existe déjà
         const existingTicket = await Ticket.findOne({ paymentId });
         let category = "thirdRelease"; // Catégorie par défaut
+        let ticketData;
         
         if (existingTicket) {
             category = existingTicket.category;
             console.log(`ℹ️ Ticket existant trouvé avec la catégorie: ${category}`);
+            
+            // IMPORTANT: Utiliser le PDF existant s'il est disponible
+            if (existingTicket.pdfPath && fs.existsSync(existingTicket.pdfPath)) {
+                console.log(`✅ Utilisation du PDF existant: ${existingTicket.pdfPath}`);
+                ticketData = {
+                    filePath: existingTicket.pdfPath,
+                    qrCodePath: '', // Non utilisé ici
+                    qrData: `https://tropitech.ch/ticket/${paymentId}`
+                };
+            } else {
+                // Générer un nouveau PDF si nécessaire
+                ticketData = await generateTicketPDF(
+                    user.name,
+                    user.firstName,
+                    user.email,
+                    paymentId,
+                    category
+                );
+                
+                // Mettre à jour le ticket avec le chemin du PDF
+                await Ticket.findByIdAndUpdate(existingTicket._id, {
+                    pdfPath: ticketData.filePath
+                });
+            }
+            
+            // IMPORTANT: NE PAS RE-ENVOYER L'EMAIL ICI
+            // C'est déjà fait par le webhook Stripe
+            console.log(`⚠️ Email non ré-envoyé pour éviter les doublons`);
         } else {
+            // Si le ticket n'existe pas encore (cas rare, car le webhook devrait l'avoir créé)
+            console.log(`⚠️ Aucun ticket existant pour ${paymentId} - Création d'un nouveau ticket`);
+            
             // Déterminer la catégorie basée sur le nombre de tickets vendus
             const ticketCount = await Ticket.countDocuments();
             
@@ -91,34 +125,34 @@ export async function GET(req) {
             }
             
             console.log(`ℹ️ Nouvelle catégorie attribuée: ${category}`);
-        }
+            
+            // Générer le billet PDF
+            ticketData = await generateTicketPDF(
+                user.name,
+                user.firstName,
+                user.email,
+                paymentId,
+                category
+            );
 
-        // Générer le billet PDF
-        const ticketData = await generateTicketPDF(
-            user.name,
-            user.firstName,
-            user.email,
-            paymentId,
-            category
-        );
-
-        console.log("✅ PDF généré :", ticketData.filePath);
-        
-        // Si le ticket n'existe pas encore, le créer maintenant
-        if (!existingTicket) {
+            // Créer un nouveau ticket en BDD
             const newTicket = new Ticket({
                 paymentId, 
                 email: user.email,
                 name: user.name,
                 firstName: user.firstName,
                 category,
-                imageConsent: user.imageConsent
+                imageConsent: user.imageConsent,
+                pdfPath: ticketData.filePath,
+                emailSent: false // Par défaut
             });
+            
             await newTicket.save();
             console.log("✅ Nouveau ticket enregistré en base de données");
             
-            // Envoyer l'email avec le billet
-            await sendTicketEmail(user.email, user.name, user.firstName, ticketData);
+            // IMPORTANT: NE PAS ENVOYER D'EMAIL ICI
+            // Laisser le webhook Stripe s'en charger ou rendre l'envoi explicite
+            console.log("⚠️ Email non envoyé depuis la route generate pour éviter les doublons");
         }
 
         // Lire le fichier PDF et l'envoyer

@@ -23,6 +23,10 @@ dirs.forEach(dir => {
   }
 });
 
+// Cache simple pour les événements Stripe traités (stocké en mémoire)
+// Note: Ce cache sera perdu si le serveur redémarre
+const processedEvents = new Set();
+
 // Middleware pour les webhooks Stripe - utilise le corps brut
 router.post("/", express.raw({ type: 'application/json' }), async (req, res) => {
     console.log("📩 Webhook Stripe reçu !");
@@ -69,18 +73,28 @@ router.post("/", express.raw({ type: 'application/json' }), async (req, res) => 
             }
         }
 
+        // NOUVEAU: Vérification d'idempotence - s'assurer qu'on ne traite pas deux fois le même événement
+        const eventId = event.id;
+        if (processedEvents.has(eventId)) {
+            console.log(`⚠️ Événement ${eventId} déjà traité précédemment - Ignoré`);
+            return res.status(200).send('Webhook event already processed');
+        }
+        
         console.log(`✅ Type d'événement: ${event.type}`);
 
-        // Traiter l'événement
+        // Traiter l'événement selon son type
         if (event.type === 'payment_intent.succeeded') {
             await handlePaymentIntentSucceeded(event.data.object);
+            // Ajouter l'ID de l'événement à la liste des événements traités
+            processedEvents.add(eventId);
             return res.status(200).send('Webhook handled: payment_intent.succeeded');
         } else if (event.type === 'payment_intent.payment_failed') {
             await handlePaymentIntentFailed(event.data.object);
+            processedEvents.add(eventId);
             return res.status(200).send('Webhook handled: payment_intent.payment_failed');
         } else {
             console.log(`ℹ️ Événement non traité: ${event.type}`);
-            return res.status(200).send(`Webhook received: ${event.type}`);
+            return res.status(200).send(`Webhook received but not handled: ${event.type}`);
         }
     } catch (error) {
         console.error(`❌ Erreur webhook: ${error.message}`);
@@ -99,6 +113,15 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
     console.log(`📝 Flux d'exécution début: ${new Date().toISOString()}`);
 
     try {
+        // Vérifier si un ticket existe déjà - VÉRIFICATION RENFORCÉE
+        console.log(`🔍 Vérification rigoureuse si un ticket existe déjà...`);
+        const existingTicket = await Ticket.findOne({ paymentId: paymentIntent.id });
+        
+        if (existingTicket) {
+            console.log(`ℹ️ Ticket déjà existant pour: ${paymentIntent.id} - ARRÊT DU TRAITEMENT`);
+            return; // Sortir immédiatement si un ticket existe déjà
+        }
+
         // Récupérer l'utilisateur
         console.log(`🔍 Recherche de l'utilisateur pour paymentId: ${paymentIntent.id}`);
         let user = await User.findOne({ paymentId: paymentIntent.id });
@@ -135,11 +158,10 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
             return;
         }
 
-        // Vérifier si un ticket existe déjà pour ce paiement
-        console.log(`🔍 Vérification si un ticket existe déjà...`);
-        const existingTicket = await Ticket.findOne({ paymentId: paymentIntent.id });
-        if (existingTicket) {
-            console.log(`ℹ️ Ticket déjà existant pour: ${paymentIntent.id}`);
+        // Ajout d'une vérification supplémentaire JUSTE AVANT de créer le ticket
+        const doubleCheck = await Ticket.findOne({ paymentId: paymentIntent.id });
+        if (doubleCheck) {
+            console.log(`⚠️ Un ticket a été créé entre-temps! Arrêt du traitement pour éviter les doublons.`);
             return;
         }
 
@@ -164,7 +186,9 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
             name: user.name,
             firstName: user.firstName,
             category,
-            imageConsent: user.imageConsent
+            imageConsent: user.imageConsent,
+            emailSent: false,  // Par défaut, l'email n'est pas encore envoyé
+            emailAttempts: 0   // Compteur de tentatives d'envoi
         });
         
         await ticket.save();
@@ -183,59 +207,45 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
             
             console.log(`✅ PDF généré avec succès: ${ticketData.filePath}`);
             
+            // Mettre à jour le ticket avec le chemin du PDF
+            await Ticket.findByIdAndUpdate(ticket._id, {
+                pdfPath: ticketData.filePath
+            });
+            
             // Vérifier que le fichier existe
             if (fs.existsSync(ticketData.filePath)) {
                 console.log(`✅ Fichier PDF vérifié: ${ticketData.filePath} (${fs.statSync(ticketData.filePath).size} bytes)`);
                 
-                try {
-                    const stats = fs.statSync(ticketData.filePath);
-                    console.log(`- Taille: ${stats.size} octets`);
-                    console.log(`- Créé le: ${stats.birthtime}`);
-                    console.log(`- Permissions: ${stats.mode.toString(8)}`);
-                } catch (statError) {
-                    console.error(`❌ Erreur lors de la vérification du fichier:`, statError);
-                }
+                // Envoyer l'email avec le billet
+                console.log(`📧 Envoi de l'email à ${user.email}...`);
+                const emailResult = await sendTicketEmail(
+                    user.email,
+                    user.name,
+                    user.firstName,
+                    ticketData
+                );
+                
+                // Mettre à jour le statut d'envoi dans le ticket
+                await Ticket.findByIdAndUpdate(ticket._id, {
+                    emailSent: true,
+                    emailSentAt: new Date(),
+                    emailAttempts: 1,
+                    emailMessageId: emailResult.messageId || 'undefined'
+                });
+                
+                console.log(`✅ Email envoyé à: ${user.email}`, emailResult ? `(ID: ${emailResult.messageId})` : '');
             } else {
                 throw new Error(`Le fichier PDF n'existe pas après génération: ${ticketData.filePath}`);
             }
-            
-            // Test de la configuration email avant envoi
-            try {
-                console.log(`🔄 Test de la connexion email avant envoi...`);
-                const nodemailer = require("nodemailer");
-                
-                // Créer un transporteur de test
-                const testTransporter = nodemailer.createTransport({
-                    host: "smtp.gmail.com",
-                    port: 465,
-                    secure: true,
-                    auth: {
-                        user: process.env.EMAIL_USER,
-                        pass: process.env.EMAIL_PASS,
-                    }
-                });
-                
-                await testTransporter.verify();
-                console.log(`✅ Test de connexion email réussi`);
-            } catch (testError) {
-                console.error(`❌ Erreur lors du test de connexion email:`, testError);
-                // Continuer malgré l'erreur pour essayer d'envoyer l'email
-            }
-            
-            // Envoyer l'email avec le billet
-            console.log(`📧 Envoi de l'email à ${user.email}...`);
-            const emailResult = await sendTicketEmail(
-                user.email,
-                user.name,
-                user.firstName,
-                ticketData
-            );
-            
-            console.log(`✅ Email envoyé à: ${user.email}`, emailResult ? `(ID: ${emailResult.messageId})` : '');
         } catch (error) {
             console.error(`❌ Erreur génération/envoi du ticket: ${error.message}`);
             console.error(error.stack);
-            // Même si l'envoi échoue, on ne veut pas perdre le ticket qui a été créé
+            
+            // Mettre à jour le ticket pour indiquer l'échec
+            await Ticket.findByIdAndUpdate(ticket._id, {
+                emailAttempts: 1,
+                emailError: error.message
+            });
         }
         
         console.log(`📝 Flux d'exécution terminé: ${new Date().toISOString()}`);
@@ -267,101 +277,16 @@ async function handlePaymentIntentFailed(paymentIntent) {
     }
 }
 
-// Route de test pour webhook
-router.post("/test", express.raw({ type: 'application/json' }), (req, res) => {
-    console.log("Test webhook reçu!");
-    console.log("Type de req.body:", typeof req.body);
-    console.log("Est-ce un Buffer?", Buffer.isBuffer(req.body));
-    
-    // Si c'est un Buffer, tout va bien
-    if (Buffer.isBuffer(req.body)) {
-        const payload = req.body.toString();
-        console.log("Payload (premiers 100 caractères):", payload.substring(0, 100));
-        res.status(200).send("Test webhook reçu correctement comme Buffer!");
-    } else {
-        res.status(400).send("Erreur: req.body n'est pas un Buffer!");
+// Nettoyage périodique des événements traités pour éviter une fuite de mémoire
+// Conserver uniquement les 1000 événements les plus récents
+setInterval(() => {
+    if (processedEvents.size > 1000) {
+        const eventsArray = Array.from(processedEvents);
+        const eventsToRemove = eventsArray.slice(0, eventsArray.length - 1000);
+        eventsToRemove.forEach(eventId => processedEvents.delete(eventId));
+        console.log(`🧹 Nettoyage du cache d'événements: ${eventsToRemove.length} événements anciens supprimés`);
     }
-});
+}, 24 * 60 * 60 * 1000); // Nettoyer une fois par jour
 
-// Route de test pour l'envoi d'email
-router.get("/test-email", async (req, res) => {
-    try {
-        console.log("📧 Test d'envoi d'email démarré");
-        const nodemailer = require("nodemailer");
-        
-        // Vérifiez que les variables d'environnement sont définies
-        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-            throw new Error("Variables EMAIL_USER ou EMAIL_PASS non définies");
-        }
-        
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-            debug: true
-        });
-        
-        // Vérifier la connexion au service d'email
-        await transporter.verify();
-        console.log("✅ Connexion au service d'email établie");
-        
-        // Envoi d'un email simple
-        const info = await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_USER, // Envoi à soi-même pour le test
-            subject: "Test email Tropitech",
-            text: "Ceci est un test pour vérifier que l'envoi d'email fonctionne correctement.",
-            html: "<p>Ceci est un test pour vérifier que l'envoi d'email <b>fonctionne correctement</b>.</p>"
-        });
-        
-        console.log("✅ Email de test envoyé:", info.messageId);
-        res.send(`Email de test envoyé avec succès! ID: ${info.messageId}`);
-    } catch (error) {
-        console.error("❌ Erreur lors du test d'email:", error);
-        res.status(500).send(`Erreur de test email: ${error.message}`);
-    }
-});
-
-// Route de test pour générer un PDF
-router.get("/test-pdf", async (req, res) => {
-    try {
-        console.log("📄 Test de génération de PDF démarré");
-        
-        // Données de test
-        const name = "Doe";
-        const firstName = "John";
-        const email = "test@example.com";
-        const paymentId = "TEST_" + Date.now();
-        const category = "earlyBird";
-        
-        // Générer le PDF
-        const ticketData = await generateTicketPDF(
-            name,
-            firstName,
-            email,
-            paymentId,
-            category
-        );
-        
-        console.log("✅ PDF généré avec succès:", ticketData);
-        
-        // Vérifier que le fichier existe
-        if (fs.existsSync(ticketData.filePath)) {
-            // Envoyer le PDF au client
-            const fileBuffer = fs.readFileSync(ticketData.filePath);
-            
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `attachment; filename=test_ticket.pdf`);
-            return res.send(fileBuffer);
-        } else {
-            throw new Error(`Le fichier PDF n'existe pas après génération: ${ticketData.filePath}`);
-        }
-    } catch (error) {
-        console.error("❌ Erreur lors du test de génération PDF:", error);
-        res.status(500).send(`Erreur de test PDF: ${error.message}`);
-    }
-});
-
+// Exporter le routeur
 module.exports = router;

@@ -3,6 +3,10 @@ const nodemailer = require("nodemailer");
 const fs = require("fs");
 const path = require("path");
 
+// Système simple de suivi des emails envoyés - en mémoire
+// Remarque: Sera réinitialisé au redémarrage du serveur
+const sentEmails = new Map();
+
 /**
  * Envoie un email avec le billet en pièce jointe
  * @param {string} email - Email du destinataire
@@ -12,7 +16,16 @@ const path = require("path");
  */
 const sendTicketEmail = async (email, name, firstName, ticketData) => {
     try {
-        console.log(`📧 Envoi du ticket à ${email}`);
+        console.log(`📧 Demande d'envoi du ticket à ${email}`);
+
+        // Vérifier si un email a déjà été envoyé pour ce billet (via le chemin du fichier)
+        const emailKey = `${email}-${ticketData.filePath}`;
+        if (sentEmails.has(emailKey)) {
+            const timeSent = sentEmails.get(emailKey);
+            console.log(`⚠️ Un email a déjà été envoyé à ${email} avec ce ticket le ${timeSent}`);
+            console.log(`⏭️ Évitement du duplicata d'email.`);
+            return { messageId: "DUPLICATE_AVOIDED", status: "skipped" };
+        }
 
         // Vérifier que les variables d'environnement sont définies
         if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
@@ -119,17 +132,15 @@ const sendTicketEmail = async (email, name, firstName, ticketData) => {
             ],
         };
 
-        console.log(`📤 Tentative d'envoi d'email à ${email}...`);
-        // Tenter d'envoyer l'email
         try {
+            console.log(`📤 Tentative d'envoi d'email à ${email}...`);
+            // Tenter d'envoyer l'email
             const info = await transporter.sendMail(mailOptions);
             console.log(`✅ Email envoyé à ${email}, ID: ${info.messageId}`);
-            console.log(`📊 Détails de l'envoi:`, {
-                acceptedRecipients: info.accepted,
-                rejectedRecipients: info.rejected,
-                response: info.response,
-                messageId: info.messageId
-            });
+            
+            // Marquer cet email comme envoyé dans notre cache en mémoire
+            sentEmails.set(emailKey, new Date().toISOString());
+            
             return info;
         } catch (sendError) {
             console.error(`❌ Erreur lors de l'envoi de l'email:`, sendError);
@@ -143,60 +154,17 @@ const sendTicketEmail = async (email, name, firstName, ticketData) => {
                 try {
                     const retryInfo = await transporter.sendMail(mailOptions);
                     console.log(`✅ Email envoyé sans pièce jointe à ${email}, ID: ${retryInfo.messageId}`);
+                    
+                    // Même sans pièce jointe, marquer comme envoyé pour éviter les duplicatas
+                    sentEmails.set(emailKey, new Date().toISOString());
+                    
                     return retryInfo;
                 } catch (retryError) {
                     console.error(`❌ Échec de la seconde tentative:`, retryError);
-                    
-                    // Dernier essai avec configuration minimale
-                    try {
-                        console.log(`🔄 Dernière tentative avec configuration minimale...`);
-                        const lastTransporter = nodemailer.createTransport({
-                            service: "gmail",
-                            auth: {
-                                user: process.env.EMAIL_USER,
-                                pass: process.env.EMAIL_PASS,
-                            }
-                        });
-                        
-                        const simpleMailOptions = {
-                            from: process.env.EMAIL_USER,
-                            to: email,
-                            subject: "Votre billet pour Tropitech (Information importante)",
-                            text: `Bonjour ${firstName} ${name},\n\nVotre paiement pour l'événement Tropitech a bien été reçu.\nPour une raison technique, nous n'avons pas pu vous envoyer automatiquement votre billet.\n\nVeuillez nous contacter à etaris.collective@gmail.com pour recevoir votre billet manuellement.\n\nMerci et à bientôt !\nL'équipe Tropitech`
-                        };
-                        
-                        const lastInfo = await lastTransporter.sendMail(simpleMailOptions);
-                        console.log(`✅ Email minimal envoyé à ${email}, ID: ${lastInfo.messageId}`);
-                        return lastInfo;
-                    } catch (lastError) {
-                        console.error(`❌ Échec de la dernière tentative:`, lastError);
-                        throw lastError;
-                    }
+                    throw retryError;
                 }
             } else {
-                // Tenter une méthode alternative
-                try {
-                    console.log(`🔄 Tentative avec transporteur alternatif...`);
-                    const altTransporter = nodemailer.createTransport({
-                        host: "smtp.gmail.com",
-                        port: 587,
-                        secure: false, // Utiliser TLS
-                        auth: {
-                            user: process.env.EMAIL_USER,
-                            pass: process.env.EMAIL_PASS,
-                        },
-                        tls: {
-                            rejectUnauthorized: false
-                        }
-                    });
-                    
-                    const info = await altTransporter.sendMail(mailOptions);
-                    console.log(`✅ Email envoyé avec transporteur alternatif à ${email}, ID: ${info.messageId}`);
-                    return info;
-                } catch (altError) {
-                    console.error(`❌ Échec avec transporteur alternatif:`, altError);
-                    throw altError; // Si ce n'est pas un problème de pièce jointe, propager l'erreur
-                }
+                throw sendError; // Propager l'erreur
             }
         }
     } catch (error) {
@@ -206,4 +174,11 @@ const sendTicketEmail = async (email, name, firstName, ticketData) => {
     }
 };
 
-module.exports = { sendTicketEmail };
+// Fonction pour vérifier si un email a déjà été envoyé (pour utilisation externe)
+const hasEmailBeenSent = (email, pdfPath) => {
+    const emailKey = `${email}-${pdfPath}`;
+    return sentEmails.has(emailKey);
+};
+
+// Exporter les fonctions
+module.exports = { sendTicketEmail, hasEmailBeenSent };
