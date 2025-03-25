@@ -29,7 +29,7 @@ services:
       - .env
     environment:
       - NODE_ENV=production
-      - MONGO_URI=mongodb+srv://etaris:vdLpN5ohu9iXc2bT@cluster0.jbpwf.mongodb.net/?
+      - MONGO_URI=mongodb+srv://etaris:vdLpN5ohu9iXc2bT@cluster0.jbpwf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
       - PORT=5000
       - FRONTEND_URL=http://frontend:3000
       - CORS_ORIGIN=http://localhost:3000
@@ -37,7 +37,6 @@ services:
       - tickets:/app/server/tickets
       - qrcodes:/app/server/qrcodes
       - assets:/app/server/assets
-
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 10s
@@ -53,4 +52,3 @@ volumes:
   tickets:
   qrcodes:
   assets:
-  mongo-data:

@@ -1,4 +1,4 @@
-// server/server.js - Configuration mise à jour
+// server/server.js - Configuration pour MongoDB Atlas
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -112,7 +112,7 @@ app.get("/", (req, res) => {
     });
 });
 
-// Route de santé pour vérifier les dépendances critiques
+// Route de santé pour vérifier les dépendances critiques - MODIFIÉE POUR ATLAS
 app.get("/health", async (req, res) => {
     try {
         const health = {
@@ -127,16 +127,21 @@ app.get("/health", async (req, res) => {
             }
         };
 
-        // Vérifier la connexion MongoDB
+        // Vérifier la connexion MongoDB Atlas
         try {
+            // Utiliser dbConnect pour vérifier la connexion
+            await dbConnect();
             const mongoose = require('mongoose');
-            if (mongoose.connection.readyState === 1) {
-                health.mongodb = true;
-            } else {
-                health.mongodb = false;
-            }
-        } catch (error) {
+            health.mongodb = mongoose.connection.readyState === 1;
+            health.mongodb_details = {
+                connection_string: process.env.MONGO_URI ? "Configurée" : "Non configurée",
+                readyState: mongoose.connection.readyState,
+                host: mongoose.connection.host || "Non connecté"
+            };
+        } catch (dbError) {
+            console.error("❌ Erreur de connexion MongoDB Atlas:", dbError);
             health.mongodb = false;
+            health.mongodb_error = dbError.message;
         }
 
         // Vérifier email creds existent
@@ -148,14 +153,17 @@ app.get("/health", async (req, res) => {
 
         // Renvoyer le statut
         const healthStatus = health.mongodb && health.email && 
-                             health.directories.tickets && 
-                             health.directories.qrcodes && 
-                             health.directories.assets && 
-                             health.logo_exists;
+                            health.directories.tickets && 
+                            health.directories.qrcodes && 
+                            health.directories.assets;
 
         res.status(healthStatus ? 200 : 503).json(health);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error("❌ Erreur dans la route /health:", error);
+        res.status(500).json({ 
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 });
 
@@ -171,8 +179,10 @@ app.use((err, req, res, next) => {
 // Connexion à MongoDB et démarrage du serveur
 const startServer = async () => {
     try {
-        // Utiliser l'utilitaire de connexion DB
+        // Utiliser l'utilitaire de connexion DB - modifié pour Atlas
+        console.log("🔄 Tentative de connexion à MongoDB Atlas...");
         await dbConnect();
+        console.log("✅ Connexion à MongoDB Atlas établie avec succès");
         
         // Démarrage du serveur après connexion à MongoDB
         app.listen(PORT, () => {
@@ -182,6 +192,7 @@ const startServer = async () => {
         });
     } catch (err) {
         console.error("❌ Erreur de démarrage du serveur:", err);
+        console.error("❌ Détails:", err.stack);
         process.exit(1); // Exit with error code
     }
 };
