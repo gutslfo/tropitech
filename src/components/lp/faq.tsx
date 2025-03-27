@@ -129,7 +129,7 @@ const imgs = [
 		<AccordionItem value="item-4">
 		  <AccordionTrigger className="text-xl">Y aura-t-il de quoi se restaurer sur place ?</AccordionTrigger>
 		  <AccordionContent className="ml-5 text-lg my-2">
-			Oui, un bar et de la nourriture seront ouverts tout au long de la soirée.<br/><br/> Vous pourrez découvrir les burgers à base de poulet frit et snacks savoureux de Los Pollos Hermanos, parfaits pour une pause gourmande sans quitter l’ambiance.<br/><br/> Pour accompagner le tout, Mes Pépites proposera une sélection de vins soigneusement choisis par un sommelier, tandis que les bières de la Nébuleuse et les matés El Tony vous apporteront fraîcheur et énergie!
+			Oui, un bar et de la nourriture seront disponibles tout au long de la soirée.<br/><br/> Vous pourrez découvrir les burgers à base de poulet frit et snacks savoureux de Los Pollos Hermanos, parfaits pour une pause gourmande sans quitter l’ambiance.<br/><br/> Pour accompagner le tout, Mes Pépites proposera une sélection de vins soigneusement choisis par un sommelier, tandis que les bières de la Nébuleuse et les matés El Tony vous apporteront fraîcheur et énergie!
 		  </AccordionContent>
 		</AccordionItem>
 		<AccordionItem value="item-5">
