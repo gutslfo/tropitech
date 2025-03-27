@@ -19,7 +19,6 @@ const CheckoutForm = () => {
   const [email, setEmail] = useState('');
   const [imageConsent, setImageConsent] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [quantity, setQuantity] = useState(1); // Nouvel état pour la quantité
 
   // États pour le paiement
   const [processingPayment, setProcessingPayment] = useState(false);
@@ -33,15 +32,6 @@ const CheckoutForm = () => {
 
   // État pour la validation du formulaire
   const [errors, setErrors] = useState({});
-
-  // Fonctions pour gérer la quantité
-  const incrementQuantity = () => {
-    if (quantity < 5) setQuantity(quantity + 1); // Limite à 5 billets
-  };
-
-  const decrementQuantity = () => {
-    if (quantity > 1) setQuantity(quantity - 1);
-  };
 
   // Récupérer le prix actif et la catégorie en fonction des places
   const fetchTicketPrices = useCallback(async () => {
@@ -130,18 +120,17 @@ const CheckoutForm = () => {
     setProcessingPayment(true);
 
     try {
-      // 1. Créer l'intention de paiement avec la quantité
+      // 1. Créer l'intention de paiement pour un seul billet
       const response = await fetch('/api/payment/create-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: activePrice * quantity * 100, // Montant total en centimes (prix × quantité)
+          amount: activePrice * 100, // Montant en centimes pour un seul billet
           email,
           name,
           firstName,
           imageConsent,
-          category: activeCategory,
-          quantity: quantity, // Inclure la quantité
+          category: activeCategory
         }),
       });
 
@@ -297,35 +286,6 @@ const CheckoutForm = () => {
               {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
             </div>
 
-            {/* Sélecteur de quantité de billets */}
-            <div className="mt-4">
-              <label htmlFor="quantity" className="block text-sm font-medium mb-1">
-                Nombre de billets
-              </label>
-              <div className="flex items-center bg-gray-800 rounded-md">
-                <button
-                  type="button"
-                  onClick={decrementQuantity}
-                  className="px-3 py-2 text-white hover:bg-gray-700 rounded-l-md"
-                  disabled={quantity <= 1}
-                >
-                  -
-                </button>
-                <span className="px-4 py-2 text-white">{quantity}</span>
-                <button
-                  type="button"
-                  onClick={incrementQuantity}
-                  className="px-3 py-2 text-white hover:bg-gray-700 rounded-r-md"
-                  disabled={quantity >= 5}
-                >
-                  +
-                </button>
-              </div>
-              <p className="mt-1 text-sm text-gray-400">
-                Total: {activePrice * quantity} CHF
-              </p>
-            </div>
-
             {/* Informations de paiement */}
             <div className="mt-6">
               <h3 className="text-lg font-medium mb-2">Informations de paiement</h3>
@@ -432,7 +392,7 @@ const CheckoutForm = () => {
                     Traitement en cours...
                   </span>
                 ) : (
-                  `Payer ${activePrice * quantity} CHF`
+                  `Payer ${activePrice} CHF`
                 )}
               </button>
             </div>
