@@ -44,7 +44,14 @@ export default function CGU() {
             </section>
 
             <section>
-              <h2 className="text-xl font-bold mb-3">4. Propriété intellectuelle</h2>
+              <h2 className="text-xl font-bold mb-3">4. Restriction d'âge</h2>
+              <p className="text-muted-foreground">
+                <strong>L'événement Tropitech est strictement réservé aux personnes majeures (18 ans et plus).</strong> Une pièce d'identité pourra être exigée à l'entrée pour vérifier l'âge des participants. Toute personne ne pouvant justifier de sa majorité se verra refuser l'accès à l'événement, sans possibilité de remboursement. En achetant un billet, vous certifiez être âgé d'au moins 18 ans à la date de l'événement.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-bold mb-3">5. Propriété intellectuelle</h2>
               <p className="text-muted-foreground">
                 Tous les contenus du Site (textes, images, logos, vidéos, etc.) sont protégés par des droits de
                 propriété intellectuelle. Toute utilisation non autorisée de ces éléments est strictement interdite.
@@ -52,7 +59,7 @@ export default function CGU() {
             </section>
 
             <section>
-              <h2 className="text-xl font-bold mb-3">5. Droit à l'image</h2>
+              <h2 className="text-xl font-bold mb-3">6. Droit à l'image</h2>
               <p className="text-muted-foreground">
                 L'utilisateur consent à ce que son image soit utilisée dans le cadre de l'événement pour lequel il a
                 acheté un billet, selon les termes définis dans notre politique de confidentialité et la loi suisse sur
@@ -61,7 +68,7 @@ export default function CGU() {
             </section>
 
             <section>
-              <h2 className="text-xl font-bold mb-3">6. Responsabilités</h2>
+              <h2 className="text-xl font-bold mb-3">7. Responsabilités</h2>
               <p className="text-muted-foreground">
                 Etaris ne peut être tenue responsable des dommages directs ou indirects résultant de l'utilisation du
                 Site ou des services fournis. En cas de force majeure, nous déclinons toute responsabilité.
@@ -69,7 +76,7 @@ export default function CGU() {
             </section>
 
             <section>
-              <h2 className="text-xl font-bold mb-3">7. Protection des données personnelles</h2>
+              <h2 className="text-xl font-bold mb-3">8. Protection des données personnelles</h2>
               <p className="text-muted-foreground">
                 Vos données personnelles sont collectées et traitées conformément à notre politique de confidentialité.
                 En accédant au Site, vous acceptez les conditions de collecte et d'utilisation de vos données
@@ -78,7 +85,7 @@ export default function CGU() {
             </section>
 
             <section>
-              <h2 className="text-xl font-bold mb-3">8. Modifications des CGU</h2>
+              <h2 className="text-xl font-bold mb-3">9. Modifications des CGU</h2>
               <p className="text-muted-foreground">
                 Nous nous réservons le droit de modifier les présentes CGU à tout moment. Vous serez informé de ces
                 modifications par une notification sur le Site. Il vous appartient de consulter régulièrement les CGU
@@ -87,7 +94,7 @@ export default function CGU() {
             </section>
 
             <section>
-              <h2 className="text-xl font-bold mb-3">9. Droit applicable et juridiction compétente</h2>
+              <h2 className="text-xl font-bold mb-3">10. Droit applicable et juridiction compétente</h2>
               <p className="text-muted-foreground">
                 Les présentes CGU sont régies par le droit suisse. En cas de litige, les tribunaux compétents du canton
                 de Vaud seront seuls compétents.
@@ -99,4 +106,3 @@ export default function CGU() {
     </div>
   )
 }
-

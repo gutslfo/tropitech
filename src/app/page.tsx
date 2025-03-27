@@ -29,7 +29,7 @@ const date = {
 const lieu = {
 	Icon: Castle,
 	name: "Lieu",
-	description: "Coopet, Caves du Château, Rue du Greny",
+	description: "Coppet, Caves du Château, Rue du Greny",
 	href: "https://maps.app.goo.gl/7D6145TF1Q7NVCnB6",
 	cta: "Voir sur Google Maps",
 	background: <img className="absolute -right-20 -top-20 opacity-60" alt="Background" />,
